@@ -16,6 +16,7 @@ See `docs/bsh-extension-market.md` in the BOS repository for the index contract.
 | Id | Name | Version | What it does |
 |---|---|---|---|
 | `com.example.allinone` | All-in-One Exam Demo | 1.0.0 | Every extension contribution in one self-checking package: 7 tools, commands, panel, prompt, context, skill, language, integrations, theme, presets, providers, workflow, events, configuration |
+| `com.example.computer-use` | Computer Use | 1.0.0 | Real macOS screen, pointer and keyboard tools, panel, workflow, hooks and two integrations, built as a process extension |
 | `com.example.hello` | Hello | 1.0.0 | A minimal declarative BSH extension: one echo tool, one command and one panel |
 | `com.open1s.opencode` | OpenCode Zen | 1.0.2 | Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape |
 
@@ -37,6 +38,36 @@ panel actions, progress, deliberate failures, the developer CLI and a throwaway
 install, then prints a `PASS`/`FAIL` score. The full walkthrough and exam
 questions are in
 [`packages/com.example.allinone/1.0.0/README.md`](packages/com.example.allinone/1.0.0/README.md).
+
+### Computer Use
+
+A macOS process extension that verifies the framework with real CoreGraphics
+calls: nine tools (screen size, screenshot, cursor, move, click, drag, scroll,
+type, key press), a right panel, a `/refresh` command, a safety prompt and skill,
+a workflow, two integrations, and `session.created`/`tool.completed` hooks.
+
+It needs **Screen Recording** and **Accessibility** for BSH, and explicitly asks
+for `computer.use`. That capability is an activation/audit gate for a process
+runtime, not a per-call OS sandbox; review the package before installing it.
+
+~~~text
+bsh ext market install com.example.computer-use
+bsh ext grant com.example.computer-use process.execute --scope program:python3
+bsh ext grant com.example.computer-use computer.use
+bsh ext grant com.example.computer-use agent.tools.register
+bsh ext grant com.example.computer-use agent.prompts.provide
+bsh ext grant com.example.computer-use agent.skills.provide
+bsh ext grant com.example.computer-use agent.workflows.provide
+bsh ext grant com.example.computer-use ui.panels
+bsh ext grant com.example.computer-use ui.commands
+bsh ext grant com.example.computer-use events.subscribe
+bsh ext retry com.example.computer-use
+~~~
+
+Safe first calls: `screen_size`, `cursor_position`, then `screenshot` or the
+`inspect` workflow. Do not click or type until the target is visible and
+confirmed. Full details are in
+[`packages/com.example.computer-use/1.0.0/README.md`](packages/com.example.computer-use/1.0.0/README.md).
 
 ### OpenCode Zen
 
