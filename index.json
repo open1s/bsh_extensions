@@ -2,6 +2,13 @@
   "schema_version": 1,
   "extensions": [
     {
+      "id": "com.example.allinone",
+      "name": "All-in-One Exam Demo",
+      "version": "1.0.0",
+      "description": "Every BSH extension contribution in one self-checking package",
+      "path": "packages/com.example.allinone/1.0.0"
+    },
+    {
       "id": "com.example.hello",
       "name": "Hello",
       "version": "1.0.0",

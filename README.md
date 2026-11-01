@@ -15,8 +15,28 @@ See `docs/bsh-extension-market.md` in the BOS repository for the index contract.
 
 | Id | Name | Version | What it does |
 |---|---|---|---|
+| `com.example.allinone` | All-in-One Exam Demo | 1.0.0 | Every extension contribution in one self-checking package: 7 tools, commands, panel, prompt, context, skill, language, integrations, theme, presets, providers, workflow, events, configuration |
 | `com.example.hello` | Hello | 1.0.0 | A minimal declarative BSH extension: one echo tool, one command and one panel |
 | `com.open1s.opencode` | OpenCode Zen | 1.0.2 | Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape |
+
+### All-in-One Exam Demo
+
+A teaching package and its grader: it contributes seven process tools,
+two commands, a panel with live actions, a prompt, a scoped context, a skill,
+a language descriptor, two integrations, a theme, a preset, model and agent
+providers, a workflow, 18 event subscriptions and a configuration schema.
+
+~~~text
+bsh ext grant com.example.allinone process.execute --scope program:python3 --note "all-in-one demo"
+bsh ext market install com.example.allinone
+python3 packages/com.example.allinone/1.0.0/scripts/exam.py
+~~~
+
+The exam checks the manifest, every contribution file, the process protocol,
+panel actions, progress, deliberate failures, the developer CLI and a throwaway
+install, then prints a `PASS`/`FAIL` score. The full walkthrough and exam
+questions are in
+[`packages/com.example.allinone/1.0.0/README.md`](packages/com.example.allinone/1.0.0/README.md).
 
 ### OpenCode Zen
 
