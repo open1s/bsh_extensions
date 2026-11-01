@@ -11,9 +11,9 @@
     {
       "id": "com.open1s.opencode",
       "name": "OpenCode Zen",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape",
-      "path": "packages/com.open1s.opencode/1.0.0"
+      "path": "packages/com.open1s.opencode/1.0.1"
     }
   ]
 }
