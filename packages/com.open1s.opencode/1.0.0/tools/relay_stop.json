@@ -1,0 +1,7 @@
+{
+  "description": "Stop the local OpenCode Zen relay started by opencode__relay_start.",
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  }
+}

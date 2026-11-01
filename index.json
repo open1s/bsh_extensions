@@ -7,6 +7,13 @@
       "version": "1.0.0",
       "description": "A minimal declarative BSH extension",
       "path": "packages/com.example.hello/1.0.0"
+    },
+    {
+      "id": "com.open1s.opencode",
+      "name": "OpenCode Zen",
+      "version": "1.0.0",
+      "description": "Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape",
+      "path": "packages/com.open1s.opencode/1.0.0"
     }
   ]
 }
