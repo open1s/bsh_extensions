@@ -21,10 +21,13 @@ See `docs/bsh-extension-market.md` in the BOS repository for the index contract.
 ### OpenCode Zen
 
 No account and no API key: the package contributes the **OpenCode Zen** model
-provider plus `opencode__relay_start`, `opencode__relay_stop`,
-`opencode__status` and `opencode__models`. The provider points at a loopback
-relay the package runs, because a BSH provider descriptor cannot add the session
-headers, tool-name shape and streaming body the free lane requires.
+provider (declared keyless) plus `opencode__relay_start`,
+`opencode__relay_stop`, `opencode__status` and `opencode__models`. The provider
+points at a loopback relay the package runs, because a provider descriptor cannot
+add the session headers, tool-name shape and streaming body the free lane
+requires. It needs the BSH provider fixes that ship with this release (launch
+refresh after the extension host opens, and `requires_key` on a descriptor); the
+package README records both.
 
 ~~~text
 bsh ext grant com.open1s.opencode process.execute --scope program:python3 --note "OpenCode Zen relay"
