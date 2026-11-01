@@ -9,6 +9,13 @@
       "path": "packages/com.example.allinone/1.0.0"
     },
     {
+      "id": "com.example.computer-use",
+      "name": "Computer Use",
+      "version": "1.0.0",
+      "description": "Real macOS screen, pointer and keyboard tools, panel, workflow and hooks built as a BSH process extension",
+      "path": "packages/com.example.computer-use/1.0.0"
+    },
+    {
       "id": "com.example.hello",
       "name": "Hello",
       "version": "1.0.0",
