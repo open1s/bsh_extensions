@@ -16,7 +16,7 @@ See `docs/bsh-extension-market.md` in the BOS repository for the index contract.
 | Id | Name | Version | What it does |
 |---|---|---|---|
 | `com.example.hello` | Hello | 1.0.0 | A minimal declarative BSH extension: one echo tool, one command and one panel |
-| `com.open1s.opencode` | OpenCode Zen | 1.0.1 | Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape |
+| `com.open1s.opencode` | OpenCode Zen | 1.0.2 | Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape |
 
 ### OpenCode Zen
 
@@ -39,7 +39,7 @@ bsh ext market install com.open1s.opencode
 Restart BSH once after installing: the package is warmed at launch and the relay
 binds before the first model call. Then pick **OpenCode Zen** in the model
 picker. The full contract, limits and mirror table are in
-[`packages/com.open1s.opencode/1.0.1/README.md`](packages/com.open1s.opencode/1.0.1/README.md).
+[`packages/com.open1s.opencode/1.0.2/README.md`](packages/com.open1s.opencode/1.0.2/README.md).
 
 ## Layout
 
