@@ -16,7 +16,7 @@ See `docs/bsh-extension-market.md` in the BOS repository for the index contract.
 | Id | Name | Version | What it does |
 |---|---|---|---|
 | `com.example.hello` | Hello | 1.0.0 | A minimal declarative BSH extension: one echo tool, one command and one panel |
-| `com.open1s.opencode` | OpenCode Zen | 1.0.0 | Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape |
+| `com.open1s.opencode` | OpenCode Zen | 1.0.1 | Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape |
 
 ### OpenCode Zen
 
@@ -25,9 +25,10 @@ provider (declared keyless) plus `opencode__relay_start`,
 `opencode__relay_stop`, `opencode__status` and `opencode__models`. The provider
 points at a loopback relay the package runs, because a provider descriptor cannot
 add the session headers, tool-name shape and streaming body the free lane
-requires. It needs the BSH provider fixes that ship with this release (launch
-refresh after the extension host opens, and `requires_key` on a descriptor); the
-package README records both.
+requires. It needs the BSH launch fixes that ship with this release (provider
+refresh after the extension host opens, `requires_key` on a descriptor, and the
+on-startup warm that binds the relay before the first model call); the package
+README records all three.
 
 ~~~text
 bsh ext grant com.open1s.opencode process.execute --scope program:python3 --note "OpenCode Zen relay"
@@ -35,9 +36,10 @@ bsh ext grant com.open1s.opencode network.http --scope any --note "live Zen cata
 bsh ext market install com.open1s.opencode
 ~~~
 
-Then ask BSH to "start the OpenCode Zen relay" and pick **OpenCode Zen** in the
-model picker. The full contract, limits and mirror table are in
-[`packages/com.open1s.opencode/1.0.0/README.md`](packages/com.open1s.opencode/1.0.0/README.md).
+Restart BSH once after installing: the package is warmed at launch and the relay
+binds before the first model call. Then pick **OpenCode Zen** in the model
+picker. The full contract, limits and mirror table are in
+[`packages/com.open1s.opencode/1.0.1/README.md`](packages/com.open1s.opencode/1.0.1/README.md).
 
 ## Layout
 

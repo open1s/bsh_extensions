@@ -1,0 +1,15 @@
+{
+  "description": "List the OpenCode Zen free models from the live catalog, with each model's input types, output cap, context window and reasoning support. Falls back to the static list baked into the package when the catalog is unreachable.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "include_paid": {
+        "type": "boolean",
+        "description": "Also report paid models, tagged with their prices. Defaults to false."
+      }
+    }
+  },
+  "capabilities": [
+    "network.http"
+  ]
+}

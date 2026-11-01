@@ -1,0 +1,74 @@
+{
+  "name": "OpenCode Zen",
+  "base_url": "http://127.0.0.1:18765/v1",
+  "api_mode": "chat",
+  "requires_key": false,
+  "beam-free": {
+    "model": "beam-free",
+    "name": "Beam Free",
+    "max_tokens": 131072,
+    "input_types": [
+      "text"
+    ]
+  },
+  "big-pickle": {
+    "model": "big-pickle",
+    "name": "Big Pickle",
+    "max_tokens": 32000,
+    "input_types": [
+      "text"
+    ]
+  },
+  "deepseek-v4.1-flash-free": {
+    "model": "deepseek-v4.1-flash-free",
+    "name": "DeepSeek V4.1 Flash Free",
+    "max_tokens": 32000,
+    "input_types": [
+      "text",
+      "image"
+    ]
+  },
+  "flint-40b-free": {
+    "model": "flint-40b-free",
+    "name": "Flint 40B Free",
+    "max_tokens": 65536,
+    "input_types": [
+      "text"
+    ]
+  },
+  "glm-5.3-flash-free": {
+    "model": "glm-5.3-flash-free",
+    "name": "GLM-5.3-Flash Free",
+    "max_tokens": 32000,
+    "input_types": [
+      "text",
+      "image"
+    ]
+  },
+  "mimo-v2.6-flash-free": {
+    "model": "mimo-v2.6-flash-free",
+    "name": "MiMo-V2.6-Flash Free",
+    "max_tokens": 32000,
+    "input_types": [
+      "text",
+      "image"
+    ]
+  },
+  "nemotron-3.5-lightning-free": {
+    "model": "nemotron-3.5-lightning-free",
+    "name": "Nemotron 3.5 Lightning Free",
+    "max_tokens": 262144,
+    "input_types": [
+      "text"
+    ]
+  },
+  "nemotron-3.5-super-vl-free": {
+    "model": "nemotron-3.5-super-vl-free",
+    "name": "Nemotron 3.5 Super VL Free",
+    "max_tokens": 131072,
+    "input_types": [
+      "text",
+      "image"
+    ]
+  }
+}
