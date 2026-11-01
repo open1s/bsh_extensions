@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "extensions": [
+    {
+      "id": "com.example.hello",
+      "name": "Hello",
+      "version": "1.0.0",
+      "description": "A minimal declarative BSH extension",
+      "path": "packages/com.example.hello/1.0.0"
+    }
+  ]
+}
