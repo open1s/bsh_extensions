@@ -16,7 +16,7 @@ See the market and CLI contract in `docs/bsh-extension.md` in the BOS repository
 | Id | Name | Version | What it does |
 |---|---|---|---|
 | `com.example.computer-use` | Computer Use | 1.0.0 | Real macOS screen, pointer and keyboard tools, panel, workflow, hooks and two integrations, built as a process extension |
-| `com.open1s.extdev` | Extension DevKit | 1.1.0 | Design, validate, lint, smoke-test, package and publish BSH extensions: 12 domain profiles, 14 tools, 6 commands, 4 skills, a self-checking panel, a release workflow and a market index editor |
+| `com.open1s.extdev` | Extension DevKit | 1.1.0 | Design, validate, lint, smoke-test, package and publish BSH extensions: 12 domain profiles, 14 tools, 9 commands, 4 skills, a self-checking panel, a release workflow and a market index editor |
 | `com.open1s.opencode` | OpenCode Zen | 1.0.2 | Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape |
 
 ### Computer Use
@@ -83,7 +83,7 @@ uncategorized case. The scaffold then writes a package that already validates
 plus docs/design.md, declares only the tools whose files exist and leaves the
 rest in an implementation checklist. Fourteen tools compile a manifest the way
 the host does, review it with stable rules, run every declared tool locally,
-build reproducible archives, edit this index and migrate a 1.x manifest. Six
+build reproducible archives, edit this index and migrate a 1.x manifest. Nine
 commands, four skills, a self-checking panel, a scoped context, a prompt, a
 release workflow and a configuration schema come with it.
 

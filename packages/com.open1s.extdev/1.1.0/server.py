@@ -60,7 +60,7 @@ def panel_document() -> dict:
         ["runtime", "process (python3)"],
         ["python", sys.version.split()[0]],
         ["tools", "14"],
-        ["commands", "6"],
+        ["commands", "9"],
         ["skills", "4"],
         ["domain profiles", "12"],
         ["events received", str(len(EVENTS))],

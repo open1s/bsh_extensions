@@ -143,6 +143,24 @@ id = "domains"
 
 [[contribution]]
 kind = "command"
+id = "refresh"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "command"
+id = "selfcheck"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "command"
+id = "topics"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "command"
 id = "audit"
 
 [contribution.payload]

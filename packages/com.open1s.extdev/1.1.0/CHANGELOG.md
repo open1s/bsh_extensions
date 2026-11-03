@@ -12,6 +12,9 @@
   declares only the tools whose files exist.
 - Add the design, domains, commands, skills and security reference topics and
   a runtime decision table.
+- Declare the panel actions refresh, selfcheck and topics as command
+  contributions, so every panel button resolves through the host command
+  seam instead of failing with "was not found".
 - Add default_domain to configuration.
 - Make the canonical package hash use the host walk order (WalkDir
   pre-order with per-directory name sorting), so the DevKit hash equals

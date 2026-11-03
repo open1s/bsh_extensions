@@ -11,7 +11,7 @@ the design.
     Extension DevKit 1.1.0
     id      com.open1s.extdev
     runtime process (python3, JSON-RPC 2.0 over stdio)
-    surface 14 tools, 6 commands, 4 skills, panel, prompt, scoped context,
+    surface 14 tools, 9 commands, 4 skills, panel, prompt, scoped context,
             workflow, configuration, 4 event subscriptions
 
 ## What changed in 1.1.0
@@ -23,7 +23,8 @@ the design.
   acceptance gates and the open questions.
 - Two new tools: design (blueprint with an optional comparison against an
   existing package) and blueprint (write the blueprint to docs/design.md).
-- Two new commands (/plan, /domains) and three new skills (extdev-design,
+- Two workflow commands (/plan, /domains), three panel-action commands
+  (/refresh, /selfcheck, /topics) and three new skills (extdev-design,
   extdev-build, extdev-ship); the existing extdev skill is now the router.
 - The scaffold accepts domain and brief. Domain mode writes a validating
   package, docs/design.md and an implementation checklist, declares only the
@@ -124,6 +125,9 @@ matches the grant when the argument is the absolute path.
 | /audit | check, then compare the package with its blueprint |
 | /publish | bump, gate, package, merge the market entry |
 | /reference | answer from explain instead of memory |
+| /refresh | refresh the DevKit panel (also the panel's Refresh button) |
+| /selfcheck | run the DevKit self-check (also the panel's Run self-check button) |
+| /topics | list the reference topics (also the panel's Reference topics button) |
 
 The four skills:
 
@@ -137,10 +141,13 @@ The four skills:
   record.
 
 Commands insert a workflow template into the input; they do not execute it.
-The model decides what to do next.
+The model decides what to do next. The three panel-action commands exist so
+the host can route the panel buttons: a panel action must resolve to a
+declared tool or command in the extension.
 
-> The 1.0.0 command names are unchanged. The new /plan and /domains commands
-> and the three new skills are additive; the 1.0.0 tools keep their names.
+> The 1.0.0 command names are unchanged. The new /plan, /domains, /refresh,
+> /selfcheck and /topics commands and the three new skills are additive; the
+> 1.0.0 tools keep their names.
 
 ## Quick start
 

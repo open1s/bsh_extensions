@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -453,6 +454,58 @@ class DomainScaffoldTest(unittest.TestCase):
             self.assertIn("## Build order", design_doc)
             self.assertIn("## Acceptance gates", design_doc)
             self.assertIn("convert", design_doc)
+
+
+class PanelActionTest(unittest.TestCase):
+    @staticmethod
+    def buttons(node):
+        found = []
+        if isinstance(node, dict):
+            if node.get("type") == "button":
+                found.append(node.get("action"))
+            for child in node.get("children") or []:
+                found += PanelActionTest.buttons(child)
+            for tab in node.get("tabs") or []:
+                if isinstance(tab, dict):
+                    found += PanelActionTest.buttons(tab.get("content"))
+        return found
+
+    def test_every_panel_button_is_declared_and_answered(self):
+        with (ROOT / "extension.toml").open("rb") as stream:
+            manifest = tomllib.load(stream)
+        declared = {
+            entry["id"] for entry in manifest.get("contribution", [])
+            if entry.get("kind") in ("tool", "command")
+        }
+        static = json.loads((ROOT / "panels" / "workshop.json").read_text())
+        actions = self.buttons(static["view"]["root"])
+        self.assertEqual(set(actions), {"selfcheck", "domains", "topics", "refresh"})
+        for action in actions:
+            self.assertIn(action, declared,
+                          "panel action %r is not a declared tool or command" % action)
+
+        requests = [{"jsonrpc": "2.0", "id": 100, "method": "initialize",
+                     "params": {"token": "test-token", "config": "{}"}}]
+        for index, action in enumerate(actions, start=1):
+            requests.append({"jsonrpc": "2.0", "id": index, "method": "commands/execute",
+                             "params": {"name": action, "arguments": {}}})
+        requests.append({"jsonrpc": "2.0", "id": 999, "method": "shutdown", "params": {}})
+        payload = "\n".join(json.dumps(request) for request in requests) + "\n"
+        process = subprocess.run(
+            [sys.executable, "-B", "server.py"],
+            cwd=str(ROOT), input=payload, capture_output=True, text=True, timeout=60,
+        )
+        self.assertEqual(process.returncode, 0, process.stderr)
+        messages = [json.loads(line) for line in process.stdout.splitlines() if line.strip()]
+        by_id = {message.get("id"): message for message in messages if "id" in message}
+        live_actions = set()
+        for index, action in enumerate(actions, start=1):
+            self.assertIn("result", by_id[index], action)
+            document = by_id[index]["result"]
+            self.assertEqual(document.get("schema_version"), "1.0")
+            self.assertEqual(document.get("root", {}).get("type"), "column")
+            live_actions.update(self.buttons(document["root"]))
+        self.assertEqual(live_actions, set(actions))
 
 
 class ServerTest(unittest.TestCase):
