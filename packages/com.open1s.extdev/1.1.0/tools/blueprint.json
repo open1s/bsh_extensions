@@ -1,0 +1,41 @@
+{
+  "description": "Design a domain extension and write the blueprint to <path>/docs/design.md. Use it for an existing package that needs a recorded build plan, or after design when the reader wants the plan on disk. The file contains the domain fit, tool descriptors, grants, safety rules, build order, gates and an implementation checklist.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to the package directory; docs/design.md is written under it."
+      },
+      "domain": {
+        "type": "string",
+        "description": "A domain profile key or a sentence that names the domain."
+      },
+      "brief": {
+        "type": "string",
+        "description": "One or two sentences about what the extension should do."
+      },
+      "id": {
+        "type": "string",
+        "description": "Reverse-domain id; omit to reuse or suggest one."
+      },
+      "runtime": {
+        "type": "string",
+        "enum": [
+          "declarative",
+          "process"
+        ],
+        "description": "Override the profile's runtime recommendation."
+      }
+    },
+    "required": [
+      "path",
+      "domain"
+    ],
+    "additionalProperties": false
+  },
+  "capabilities": [
+    "workspace.read",
+    "workspace.write"
+  ]
+}

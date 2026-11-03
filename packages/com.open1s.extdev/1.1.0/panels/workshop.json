@@ -1,0 +1,76 @@
+{
+  "title": "Extension DevKit",
+  "icon": null,
+  "location": "right",
+  "default_visibility": "visible",
+  "view": {
+    "schema_version": "1.0",
+    "root": {
+      "type": "column",
+      "children": [
+        {
+          "type": "heading",
+          "text": "Extension DevKit",
+          "level": 2
+        },
+        {
+          "type": "text",
+          "text": "Design a domain extension, then scaffold, validate, lint, smoke-test, package and publish it. Every action runs the same code the tools run."
+        },
+        {
+          "type": "table",
+          "columns": [
+            "Key",
+            "Value"
+          ],
+          "rows": [
+            [
+              "version",
+              "1.1.0"
+            ],
+            [
+              "tools",
+              "14"
+            ],
+            [
+              "commands",
+              "6"
+            ],
+            [
+              "skills",
+              "4"
+            ],
+            [
+              "domain profiles",
+              "12"
+            ]
+          ]
+        },
+        {
+          "type": "divider"
+        },
+        {
+          "type": "button",
+          "label": "Run self-check",
+          "action": "selfcheck",
+          "style": "primary"
+        },
+        {
+          "type": "button",
+          "label": "Domain recipes",
+          "action": "domains"
+        },
+        {
+          "type": "button",
+          "label": "Reference topics",
+          "action": "topics"
+        },
+        {
+          "type": "button",
+          "label": "Refresh",
+          "action": "refresh"
+        }
+      ]
+    }
+  }
+}

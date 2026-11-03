@@ -15,30 +15,9 @@ See the market and CLI contract in `docs/bsh-extension.md` in the BOS repository
 
 | Id | Name | Version | What it does |
 |---|---|---|---|
-| `com.example.allinone` | All-in-One Exam Demo | 1.0.0 | Every extension contribution in one self-checking package: 7 tools, commands, panel, prompt, context, skill, language, integrations, theme, presets, providers, workflow, events, configuration |
 | `com.example.computer-use` | Computer Use | 1.0.0 | Real macOS screen, pointer and keyboard tools, panel, workflow, hooks and two integrations, built as a process extension |
-| `com.example.hello` | Hello | 1.0.0 | A minimal declarative BSH extension: one echo tool, one command and one panel |
-| `com.open1s.extdev` | Extension DevKit | 1.0.0 | Build, validate, lint, smoke-test, package and publish BSH extensions: 12 tools, 4 commands, a self-checking panel, a skill, a release workflow and a market index editor |
+| `com.open1s.extdev` | Extension DevKit | 1.1.0 | Design, validate, lint, smoke-test, package and publish BSH extensions: 12 domain profiles, 14 tools, 6 commands, 4 skills, a self-checking panel, a release workflow and a market index editor |
 | `com.open1s.opencode` | OpenCode Zen | 1.0.2 | Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape |
-
-### All-in-One Exam Demo
-
-A teaching package and its grader: it contributes seven process tools,
-two commands, a panel with live actions, a prompt, a scoped context, a skill,
-a language descriptor, two integrations, a theme, a preset, model and agent
-providers, a workflow, 18 event subscriptions and a configuration schema.
-
-~~~text
-bsh ext grant com.example.allinone process.execute --scope program:python3 --note "all-in-one demo"
-bsh ext market install com.example.allinone
-python3 packages/com.example.allinone/1.0.0/scripts/exam.py
-~~~
-
-The exam checks the manifest, every contribution file, the process protocol,
-panel actions, progress, deliberate failures, the developer CLI and a throwaway
-install, then prints a `PASS`/`FAIL` score. The full walkthrough and exam
-questions are in
-[`packages/com.example.allinone/1.0.0/README.md`](packages/com.example.allinone/1.0.0/README.md).
 
 ### Computer Use
 
@@ -95,12 +74,18 @@ picker. The full contract, limits and mirror table are in
 
 ### Extension DevKit
 
-A developer toolkit as a process extension. Twelve tools scaffold a package
-that already validates, compile a manifest the way the host does, review it
-with stable rules, run every declared tool locally, build reproducible
-archives, edit this index and migrate a 1.x manifest. Four commands, a
-self-checking panel, a scoped context, a prompt, a skill, a release workflow
-and a configuration schema come with it.
+A design-first toolkit as a process extension. The design tool turns a domain
+and a one-sentence brief into a blueprint: the runtime the domain needs, the
+contribution and tool surface, capability grants, safety rules, a build order
+and acceptance gates. Twelve domain profiles cover knowledge, devops, data,
+web, documents, media, messaging, security, research, model, system and the
+uncategorized case. The scaffold then writes a package that already validates
+plus docs/design.md, declares only the tools whose files exist and leaves the
+rest in an implementation checklist. Fourteen tools compile a manifest the way
+the host does, review it with stable rules, run every declared tool locally,
+build reproducible archives, edit this index and migrate a 1.x manifest. Six
+commands, four skills, a self-checking panel, a scoped context, a prompt, a
+release workflow and a configuration schema come with it.
 
 ~~~text
 bsh ext market install com.open1s.extdev
@@ -109,16 +94,17 @@ bsh ext grant com.open1s.extdev agent.workflows.provide
 bsh ext grant com.open1s.extdev workspace.write
 ~~~
 
-Then ask the agent to scaffold a package in an empty directory, or run the
-tools directly: `validate`, `lint`, `check`, `smoke`, `explain`, `hash`,
-`market`, `bump`, `package` and `migrate`. `check` is the release gate:
+Then ask the agent to design a domain extension with `/plan`, or run the
+tools directly: `design`, `blueprint`, `scaffold`, `validate`, `lint`,
+`check`, `smoke`, `explain`, `hash`, `market`, `bump`, `package` and
+`migrate`. `check` is the release gate:
 validation, review, the canonical hash and, with `smoke`, one real call per
 declared tool. The panel's self-check lints the DevKit itself.
 
 The package is unsigned and asks for `process.execute` because it is a Python
 runtime; it makes no network requests and reads no secrets. The full contract
 is in
-[`packages/com.open1s.extdev/1.0.0/README.md`](packages/com.open1s.extdev/1.0.0/README.md).
+[`packages/com.open1s.extdev/1.1.0/README.md`](packages/com.open1s.extdev/1.1.0/README.md).
 
 ## Layout
 
