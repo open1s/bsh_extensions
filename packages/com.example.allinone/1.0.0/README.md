@@ -1,6 +1,6 @@
 # All-in-One Exam Demo
 
-One BSH extension package that exercises **every contribution kind** and the
+One BSH extension package with a manifest 2.0 that exercises **every contribution kind** and the
 process protocol end to end. It is a teaching artefact and a self-checking exam:
 the package itself is the subject, and `scripts/exam.py` is the grader.
 
@@ -90,7 +90,7 @@ failure.
 | Model provider | `providers/models/demo.json` | `bsh ext providers` |
 | Agent provider | `providers/agents/helper.json` | `bsh ext providers` |
 | Workflow | `workflows/inspect.json` | The `inspect` tool; chains describe → config → events |
-| Events | `extension.toml` `events = [...]` | `events` tool after host activity |
+| Events | `extension.toml` `[[contribution]] kind="event.subscribe"` | `events` tool after host activity |
 | Configuration | `schemas/config.schema.json` + defaults | `config` tool |
 
 ## The tools

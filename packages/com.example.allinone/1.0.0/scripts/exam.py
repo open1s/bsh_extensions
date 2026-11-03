@@ -76,12 +76,46 @@ FILES = {
 }
 
 
+KIND_TO_FILE = {
+    "tool": "tools",
+    "command": "commands",
+    "panel": "panels",
+    "prompt": "prompts",
+    "context": "contexts",
+    "skill": "skills",
+    "language": "languages",
+    "integration": "integrations",
+    "theme": "themes",
+    "preset": "presets",
+    "model-provider": "model_providers",
+    "agent-provider": "agent_providers",
+    "workflow": "workflows",
+    "event.subscribe": "events",
+    "event.publish": "publishes",
+    "hook": "hooks",
+}
+
+
+def contributions(document):
+    return document.get("contribution", [])
+
+
+def grouped(document):
+    result = {}
+    for contribution in contributions(document):
+        key = KIND_TO_FILE.get(contribution.get("kind"))
+        if key:
+            result.setdefault(key, []).append(contribution.get("id"))
+    return result
+
+
 def check_manifest():
     document = manifest()
-    contributes = document.get("contributes", {})
+    record("manifest is schema 2.0", document.get("schema_version") == "2.0")
+    declared = grouped(document)
     missing = []
     for kind, pattern in FILES.items():
-        for identifier in contributes.get(kind, []):
+        for identifier in declared.get(kind, []):
             path = os.path.join(ROOT, pattern.format(identifier))
             if not os.path.isfile(path):
                 missing.append(os.path.relpath(path, ROOT))
@@ -89,10 +123,10 @@ def check_manifest():
     schema = document.get("configuration", {}).get("schema")
     record("configuration schema is declared and present",
            bool(schema) and os.path.isfile(os.path.join(ROOT, schema)))
-    events = contributes.get("events", [])
+    events = declared.get("events", [])
     record("event subscriptions are declared", len(events) >= 10, "%d topics" % len(events))
     record("provider descriptors are declared",
-           bool(contributes.get("model_providers")) and bool(contributes.get("agent_providers")))
+           bool(declared.get("model_providers")) and bool(declared.get("agent_providers")))
 
 
 def check_json_files():
@@ -128,7 +162,7 @@ def node_actions(node):
 
 def check_surfaces():
     document = manifest()
-    contributes = document.get("contributes", {})
+    contributes = grouped(document)
     tools = set(contributes.get("tools", []))
     commands = set(contributes.get("commands", []))
     declared = tools | commands
