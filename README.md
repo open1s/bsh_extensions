@@ -9,7 +9,7 @@ bsh ext market
 bsh ext market install com.open1s.opencode
 ~~~
 
-See `docs/bsh-extension-market.md` in the BOS repository for the index contract.
+See the market and CLI contract in `docs/bsh-extension.md` in the BOS repository. Every package here uses manifest 2.0 (schema_version 2.0).
 
 ## Packages
 
@@ -103,13 +103,14 @@ bsh_extensions/
 ~~~
 
 `index.json` is the only document the host reads. Every entry needs
-`schema_version` 1, a reverse-domain `id`, a SemVer `version`, and a relative
-`path` whose root holds `extension.toml`. `hash` is optional; the host computes
-the package hash itself.
+`schema_version` 1 (the index format), a reverse-domain `id`, a SemVer `version`,
+and a relative `path` whose root holds a manifest 2.0 `extension.toml`
+(`schema_version = "2.0"`). `hash` is optional; the host computes the package
+hash itself.
 
 ## Publishing a package
 
-1. Add `packages/<id>/<version>/` with a valid `extension.toml`.
+1. Add `packages/<id>/<version>/` with a valid manifest 2.0 `extension.toml`.
 2. Append the entry to `index.json` and keep the array sorted by id.
 3. Run `bsh ext validate packages/<id>/<version>` and `bsh ext test
    packages/<id>/<version>`.
