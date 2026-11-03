@@ -18,6 +18,7 @@ See the market and CLI contract in `docs/bsh-extension.md` in the BOS repository
 | `com.example.allinone` | All-in-One Exam Demo | 1.0.0 | Every extension contribution in one self-checking package: 7 tools, commands, panel, prompt, context, skill, language, integrations, theme, presets, providers, workflow, events, configuration |
 | `com.example.computer-use` | Computer Use | 1.0.0 | Real macOS screen, pointer and keyboard tools, panel, workflow, hooks and two integrations, built as a process extension |
 | `com.example.hello` | Hello | 1.0.0 | A minimal declarative BSH extension: one echo tool, one command and one panel |
+| `com.open1s.extdev` | Extension DevKit | 1.0.0 | Build, validate, lint, smoke-test, package and publish BSH extensions: 12 tools, 4 commands, a self-checking panel, a skill, a release workflow and a market index editor |
 | `com.open1s.opencode` | OpenCode Zen | 1.0.2 | Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape |
 
 ### All-in-One Exam Demo
@@ -92,6 +93,33 @@ binds before the first model call. Then pick **OpenCode Zen** in the model
 picker. The full contract, limits and mirror table are in
 [`packages/com.open1s.opencode/1.0.2/README.md`](packages/com.open1s.opencode/1.0.2/README.md).
 
+### Extension DevKit
+
+A developer toolkit as a process extension. Twelve tools scaffold a package
+that already validates, compile a manifest the way the host does, review it
+with stable rules, run every declared tool locally, build reproducible
+archives, edit this index and migrate a 1.x manifest. Four commands, a
+self-checking panel, a scoped context, a prompt, a skill, a release workflow
+and a configuration schema come with it.
+
+~~~text
+bsh ext market install com.open1s.extdev
+bsh ext grant com.open1s.extdev process.execute --scope program:python3
+bsh ext grant com.open1s.extdev agent.workflows.provide
+bsh ext grant com.open1s.extdev workspace.write
+~~~
+
+Then ask the agent to scaffold a package in an empty directory, or run the
+tools directly: `validate`, `lint`, `check`, `smoke`, `explain`, `hash`,
+`market`, `bump`, `package` and `migrate`. `check` is the release gate:
+validation, review, the canonical hash and, with `smoke`, one real call per
+declared tool. The panel's self-check lints the DevKit itself.
+
+The package is unsigned and asks for `process.execute` because it is a Python
+runtime; it makes no network requests and reads no secrets. The full contract
+is in
+[`packages/com.open1s.extdev/1.0.0/README.md`](packages/com.open1s.extdev/1.0.0/README.md).
+
 ## Layout
 
 ~~~text
@@ -113,7 +141,8 @@ hash itself.
 1. Add `packages/<id>/<version>/` with a valid manifest 2.0 `extension.toml`.
 2. Append the entry to `index.json` and keep the array sorted by id.
 3. Run `bsh ext validate packages/<id>/<version>` and `bsh ext test
-   packages/<id>/<version>`.
+   packages/<id>/<version>`; the DevKit package adds a review, a smoke run and
+   a canonical hash check in one call.
 4. Commit both the package and the index entry in one change.
 
 Do not commit `__pycache__`, build output, or installed package data.

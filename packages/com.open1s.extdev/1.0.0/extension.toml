@@ -1,0 +1,213 @@
+schema_version = "2.0"
+
+[extension]
+id = "com.open1s.extdev"
+name = "Extension DevKit"
+version = "1.0.0"
+description = "Build, validate, lint, smoke-test, package and publish BSH extensions from inside BSH: scaffolding, a manifest compiler, a review with stable rule ids, a local dry run of every declared tool, deterministic release archives and a Git market index editor"
+authors = ["open1s"]
+license = "MIT"
+repository = "https://github.com/open1s/bsh_extensions"
+homepage = "https://github.com/open1s/bsh_extensions/tree/main/packages/com.open1s.extdev/1.0.0"
+
+[compatibility]
+host = ">=3.0.2, <4.0.0"
+extension_api = "^1.0"
+
+[runtime]
+kind = "process"
+
+[runtime.config]
+entry = "python3"
+args = ["-B", "server.py"]
+protocol = "jsonrpc-2.0"
+startup = "on-demand"
+
+[runtime.config.env]
+PYTHONDONTWRITEBYTECODE = "1"
+
+[capabilities]
+required = [
+    "process.execute",
+    "agent.tools.register",
+    "agent.context.provide",
+    "agent.prompts.provide",
+    "agent.skills.provide",
+    "agent.workflows.provide",
+    "ui.panels",
+    "ui.commands",
+    "events.subscribe",
+]
+
+[[contribution]]
+kind = "tool"
+id = "scaffold"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "tool"
+id = "validate"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "tool"
+id = "lint"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "tool"
+id = "check"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "tool"
+id = "smoke"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "tool"
+id = "explain"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "tool"
+id = "hash"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "tool"
+id = "market"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "tool"
+id = "bump"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "tool"
+id = "package"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "tool"
+id = "migrate"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "tool"
+id = "events"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "command"
+id = "new"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "command"
+id = "audit"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "command"
+id = "publish"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "command"
+id = "reference"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "panel"
+id = "workshop"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "prompt"
+id = "extdev-guide"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "context"
+id = "extensions"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "skill"
+id = "extdev"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "workflow"
+id = "release"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "event.subscribe"
+id = "extension.loaded"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "event.subscribe"
+id = "extension.failed"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "event.subscribe"
+id = "tool.completed"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "event.subscribe"
+id = "config.changed"
+
+[contribution.payload]
+
+[configuration]
+schema = "schemas/config.schema.json"
+
+[configuration.defaults]
+author = "BSH Extension Author"
+license = "MIT"
+default_runtime = "declarative"
+market_path = ""
+smoke_timeout_ms = 5000
+strict_lint = false
+
+[resources]
+max_memory_mb = 256
+max_execution_ms = 30000
+max_concurrent_calls = 4
+max_output_bytes = 1048576
+
+[dependencies]
+
+[services]
+provides = []
+requires = []

@@ -1,0 +1,24 @@
+{
+  "description": "Rewrite a 1.x extension.toml as manifest 2.0: compatibility.bsh becomes host, runtime fields move under runtime.config, contributes lists become [[contribution]] entries, events/publishes/hooks become contributions. Pass write=true to replace the manifest and keep a .v1 backup.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to the package directory."
+      },
+      "write": {
+        "type": "boolean",
+        "description": "Write the migrated manifest instead of only returning it."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "capabilities": [
+    "workspace.read",
+    "workspace.write"
+  ]
+}

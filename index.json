@@ -23,6 +23,14 @@
       "path": "packages/com.example.hello/1.0.0"
     },
     {
+      "id": "com.open1s.extdev",
+      "name": "Extension DevKit",
+      "version": "1.0.0",
+      "description": "Build, validate, lint, smoke-test, package and publish BSH extensions from inside BSH: scaffolding, a manifest compiler, a review with stable rule ids, a local dry run of every declared tool, deterministic release archives and a Git market index editor",
+      "path": "packages/com.open1s.extdev/1.0.0",
+      "hash": "06ca153583d033212ee5cb9a6aad09814a187afa33f6e67adafc772005166810"
+    },
+    {
       "id": "com.open1s.opencode",
       "name": "OpenCode Zen",
       "version": "1.0.2",

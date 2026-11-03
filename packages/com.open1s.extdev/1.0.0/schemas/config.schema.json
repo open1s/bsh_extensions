@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Extension DevKit configuration",
+  "type": "object",
+  "properties": {
+    "author": {
+      "type": "string",
+      "description": "Author recorded by scaffold."
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX license id recorded by scaffold."
+    },
+    "default_runtime": {
+      "type": "string",
+      "enum": [
+        "declarative",
+        "process"
+      ],
+      "description": "Runtime scaffold uses when the call omits one."
+    },
+    "market_path": {
+      "type": "string",
+      "description": "Absolute path to a market clone; used when repo is omitted."
+    },
+    "smoke_timeout_ms": {
+      "type": "integer",
+      "minimum": 500,
+      "maximum": 30000,
+      "description": "Per-call smoke timeout."
+    },
+    "strict_lint": {
+      "type": "boolean",
+      "description": "Report lint notes as warnings."
+    }
+  },
+  "additionalProperties": false
+}

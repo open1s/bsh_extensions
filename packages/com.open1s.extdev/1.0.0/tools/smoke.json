@@ -1,0 +1,27 @@
+{
+  "description": "Run a package's declared tools without the host: declarative bodies execute as the host executes them, process packages start with an initialize handshake and one tools/call per tool. Reports per-tool status, protocol facts and stderr.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to the package directory."
+      },
+      "tool": {
+        "type": "string",
+        "description": "Only call this tool id."
+      },
+      "arguments": {
+        "type": "object",
+        "description": "Arguments for that tool."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "capabilities": [
+    "workspace.read"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "description": "Report the host events this extension process has observed (extension.loaded, extension.failed, tool.completed, config.changed) with topics, count and uptime.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 40,
+        "description": "How many recent events to return."
+      }
+    },
+    "additionalProperties": false
+  },
+  "capabilities": []
+}

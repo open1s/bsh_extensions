@@ -1,0 +1,19 @@
+{
+  "description": "Validate a package and review it: missing README, LICENSE or tests, undocumented critical capabilities, tools without typed schemas, undeclared contribution files, credential-looking strings, market index drift. Findings carry EXT rule ids and a fix.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to the package directory."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "capabilities": [
+    "workspace.read"
+  ]
+}
