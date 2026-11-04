@@ -103,4 +103,7 @@ prompts/system.md      safety instructions
 skills/computer-safety/SKILL.md
 integrations/*.json    tool action + command action
 workflows/inspect.json 3-step same-package workflow
+tests/test_server.py   protocol tests: handshake, safe tools, panel
+LICENSE                MIT, same text as the repository root
+CHANGELOG.md           release notes
 ```

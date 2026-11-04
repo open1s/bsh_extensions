@@ -107,10 +107,11 @@ but the provider descriptor would then need the same edit.
 
 ## Free models
 
-The descriptor is baked from the live catalog on 2026-11-01. The eight free
+The descriptor is baked from the live catalog on 2026-11-03. The ten free
 models it lists are the ones whose input and output prices are both zero:
-`big-pickle`, `beam-free`, `flint-40b-free`, `mimo-v2.6-flash-free`,
-`nemotron-3.5-super-vl-free`, `nemotron-3.5-lightning-free`,
+`big-pickle`, `beam-free`, `crouton-alpha-free`, `flint-40b-free`,
+`mimo-v2.6-flash-free`, `nemotron-3.5-super-vl-free`,
+`nemotron-3.5-lightning-free`, `pulse-alpha-free`,
 `deepseek-v4.1-flash-free` and `glm-5.3-flash-free`.
 
 Because a desk-checked list rots, `opencode__models` reads

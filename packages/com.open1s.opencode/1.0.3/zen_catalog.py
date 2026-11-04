@@ -40,6 +40,8 @@ STATIC_CONTEXT = {
     "nemotron-3.5-lightning-free": 262144,
     "deepseek-v4.1-flash-free": 200000,
     "glm-5.3-flash-free": 200000,
+    "pulse-alpha-free": 1048576,
+    "crouton-alpha-free": 1048576,
 }
 
 # A long-lived process caches the last good live answer so a transient DNS or

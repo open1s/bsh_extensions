@@ -11,13 +11,7 @@ bsh ext market install com.open1s.opencode
 
 See the market and CLI contract in `docs/bsh-extension.md` in the BOS repository. Every package here uses manifest 2.0 (schema_version 2.0).
 
-## Packages
-
-| Id | Name | Version | What it does |
-|---|---|---|---|
-| `com.example.computer-use` | Computer Use | 1.0.0 | Real macOS screen, pointer and keyboard tools, panel, workflow, hooks and two integrations, built as a process extension |
-| `com.open1s.extdev` | Extension DevKit | 1.1.0 | Design, validate, lint, smoke-test, package and publish BSH extensions: 12 domain profiles, 14 tools, 9 commands, 4 skills, a self-checking panel, a release workflow and a market index editor |
-| `com.open1s.opencode` | OpenCode Zen | 1.0.2 | Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape |
+## Package details
 
 ### Computer Use
 
@@ -70,7 +64,7 @@ bsh ext market install com.open1s.opencode
 Restart BSH once after installing: the package is warmed at launch and the relay
 binds before the first model call. Then pick **OpenCode Zen** in the model
 picker. The full contract, limits and mirror table are in
-[`packages/com.open1s.opencode/1.0.2/README.md`](packages/com.open1s.opencode/1.0.2/README.md).
+[`packages/com.open1s.opencode/1.0.3/README.md`](packages/com.open1s.opencode/1.0.3/README.md).
 
 ### Extension DevKit
 
@@ -104,7 +98,7 @@ declared tool. The panel's self-check lints the DevKit itself.
 The package is unsigned and asks for `process.execute` because it is a Python
 runtime; it makes no network requests and reads no secrets. The full contract
 is in
-[`packages/com.open1s.extdev/1.1.0/README.md`](packages/com.open1s.extdev/1.1.0/README.md).
+[`packages/com.open1s.extdev/2.1.0/README.md`](packages/com.open1s.extdev/2.1.0/README.md).
 
 ## Layout
 
@@ -139,7 +133,6 @@ Do not commit `__pycache__`, build output, or installed package data.
 | Id | Name | Version | What it does |
 |---|---|---|---|
 | `com.example.computer-use` | Computer Use | 1.0.0 | Real macOS screen, pointer and keyboard tools, panel, workflow and hooks built as a BSH process extension |
-| `com.open1s.extdev` | Extension DevKit | 1.1.0 | Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain. |
-| `com.open1s.extdev` | Extension DevKit | 2.0.0 | Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain. |
-| `com.open1s.opencode` | OpenCode Zen | 1.0.2 | Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape |
+| `com.open1s.extdev` | Extension DevKit | 2.1.0 | Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain, and grill-me interrogates an ambiguous brief before code is written. |
+| `com.open1s.opencode` | OpenCode Zen | 1.0.3 | Free OpenCode Zen models for BSH through a local relay that speaks the anonymous lane wire shape |
 <!-- market-table:end -->

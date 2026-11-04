@@ -6,23 +6,8 @@
       "name": "Computer Use",
       "version": "1.0.0",
       "description": "Real macOS screen, pointer and keyboard tools, panel, workflow and hooks built as a BSH process extension",
-      "path": "packages/com.example.computer-use/1.0.0"
-    },
-    {
-      "id": "com.open1s.extdev",
-      "name": "Extension DevKit",
-      "version": "1.1.0",
-      "description": "Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain.",
-      "path": "packages/com.open1s.extdev/1.1.0",
-      "hash": "b369505d3b070207d42e1e683c597f21c27e63eb4f5baf0e5ce5feff064d99eb"
-    },
-    {
-      "id": "com.open1s.extdev",
-      "name": "Extension DevKit",
-      "version": "2.0.0",
-      "description": "Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain.",
-      "path": "packages/com.open1s.extdev/2.0.0",
-      "hash": "8b84ac95d5ed5f0b9394199cc8af8f26d4af95b2bd750f259ccfe02d171d7c64"
+      "path": "packages/com.example.computer-use/1.0.0",
+      "hash": "e09b62f80e56d544af434bea7bf04e57789df208edb3fe1119e7bbc1a1e8b92b"
     },
     {
       "id": "com.open1s.extdev",
@@ -30,14 +15,15 @@
       "version": "2.1.0",
       "description": "Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain, and grill-me interrogates an ambiguous brief before code is written.",
       "path": "packages/com.open1s.extdev/2.1.0",
-      "hash": "106506ef947ca2515f49ac37a49106e6e1e303e1cd0f3c496d8cdd253d9e192d"
+      "hash": "b058a23ac4146430626c02063fc6b91a68385ac23b0dff25a4386f3ce07f3431"
     },
     {
       "id": "com.open1s.opencode",
       "name": "OpenCode Zen",
-      "version": "1.0.2",
-      "description": "Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape",
-      "path": "packages/com.open1s.opencode/1.0.2"
+      "version": "1.0.3",
+      "description": "Free OpenCode Zen models for BSH through a local relay that speaks the anonymous lane wire shape",
+      "path": "packages/com.open1s.opencode/1.0.3",
+      "hash": "be4cee79672aecea0216ce89043d0e31aab84def9b7b71deb473644ee9baee13"
     }
   ]
 }

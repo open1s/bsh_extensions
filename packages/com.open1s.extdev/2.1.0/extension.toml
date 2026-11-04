@@ -11,7 +11,7 @@ repository = "https://github.com/open1s/bsh_extensions"
 homepage = "https://github.com/open1s/bsh_extensions/tree/main/packages/com.open1s.extdev/2.1.0"
 
 [compatibility]
-host = ">=3.0.2, <4.0.0"
+host = ">=3.0.2, <5.0.0"
 extension_api = "^1.0"
 
 [runtime]

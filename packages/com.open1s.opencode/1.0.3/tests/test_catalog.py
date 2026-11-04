@@ -99,7 +99,8 @@ class CatalogTests(unittest.TestCase):
         self.assertTrue(result["error"])
         ids = [model["id"] for model in result["free"]]
         self.assertIn("deepseek-v4.1-flash-free", ids)
-        self.assertEqual(len(ids), 8)
+        self.assertIn("pulse-alpha-free", ids)
+        self.assertEqual(len(ids), len(zen_catalog.static_models()))
         by_id = {model["id"]: model for model in result["free"]}
         self.assertEqual(by_id["glm-5.3-flash-free"]["input_types"], ["text", "image"])
         self.assertEqual(by_id["big-pickle"]["context_window"], 200000)

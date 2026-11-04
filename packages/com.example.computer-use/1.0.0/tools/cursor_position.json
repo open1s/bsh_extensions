@@ -3,6 +3,7 @@
   "input_schema": {
     "type": "object",
     "properties": {},
+    "required": [],
     "additionalProperties": false
   },
   "capabilities": [

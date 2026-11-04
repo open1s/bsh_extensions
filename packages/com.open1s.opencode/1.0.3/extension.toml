@@ -3,7 +3,7 @@ schema_version = "2.0"
 [extension]
 id = "com.open1s.opencode"
 name = "OpenCode Zen"
-version = "1.0.2"
+version = "1.0.3"
 description = "Free OpenCode Zen models for BSH through a local relay that speaks the anonymous lane wire shape"
 authors = ["open1s"]
 license = "MIT"
@@ -11,7 +11,7 @@ repository = "https://github.com/open1s/bsh_extensions"
 homepage = "https://github.com/open1s/bsh_extensions"
 
 [compatibility]
-host = ">=3.0.2, <4.0.0"
+host = ">=3.0.2, <5.0.0"
 extension_api = "^1.0"
 
 [runtime]

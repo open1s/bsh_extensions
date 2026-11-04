@@ -7,9 +7,11 @@ version = "1.0.0"
 description = "A real, opt-in screen, pointer and keyboard extension for macOS"
 authors = ["BSH Example"]
 license = "MIT"
+repository = "https://github.com/open1s/bsh_extensions"
+homepage = "https://github.com/open1s/bsh_extensions"
 
 [compatibility]
-host = ">=3.0.2, <4.0.0"
+host = ">=3.0.2, <5.0.0"
 extension_api = "^1.0"
 
 [runtime]

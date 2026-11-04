@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.3 — 2026-11-03
+
+- The baked provider descriptor is regenerated from the live catalog: it now
+  lists ten free models, adding `pulse-alpha-free` (text+image, 131072 output)
+  and `crouton-alpha-free` (text+image, 270000 output), both 1048576 context.
+- `STATIC_CONTEXT` in zen_catalog.py gains the two new context windows, so the
+  static fallback reports honest windows for them too.
+- No relay or protocol change; the wire shape was re-verified against the live
+  anonymous lane (upstream accepted the gated request and answered the
+  documented 429 FreeUsageLimitError on a spent per-IP quota).
+
 ## 1.0.2 — 2026-11-01
 
 - The relay's request log is guarded: if the host that spawned the process has
