@@ -132,3 +132,14 @@ hash itself.
 4. Commit both the package and the index entry in one change.
 
 Do not commit `__pycache__`, build output, or installed package data.
+
+## Packages
+
+<!-- market-table:start -->
+| Id | Name | Version | What it does |
+|---|---|---|---|
+| `com.example.computer-use` | Computer Use | 1.0.0 | Real macOS screen, pointer and keyboard tools, panel, workflow and hooks built as a BSH process extension |
+| `com.open1s.extdev` | Extension DevKit | 1.1.0 | Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain. |
+| `com.open1s.extdev` | Extension DevKit | 2.0.0 | Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain. |
+| `com.open1s.opencode` | OpenCode Zen | 1.0.2 | Free OpenCode Zen models in BSH through a loopback relay that speaks the anonymous lane's wire shape |
+<!-- market-table:end -->

@@ -1,0 +1,25 @@
+{
+  "description": "Raise the version in extension.toml (major, minor, patch or an explicit semantic version) and open a dated CHANGELOG entry.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to the package directory."
+      },
+      "release": {
+        "type": "string",
+        "description": "major, minor, patch or an explicit version such as 1.2.0."
+      }
+    },
+    "required": [
+      "path",
+      "release"
+    ],
+    "additionalProperties": false
+  },
+  "capabilities": [
+    "workspace.read",
+    "workspace.write"
+  ]
+}

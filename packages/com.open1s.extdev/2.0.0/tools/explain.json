@@ -1,0 +1,35 @@
+{
+  "description": "Return the BSH extension standard as markdown for one topic: overview, design, domains, manifest, runtime, capabilities, contributions, tools, panels, commands, skills, workflows, protocol, security, market, ids, cli, checklist or errors. Read design and domains before designing a package; read manifest, tools and protocol before writing one.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "topic": {
+        "type": "string",
+        "description": "Topic name; omit for the overview.",
+        "enum": [
+          "overview",
+          "manifest",
+          "runtime",
+          "capabilities",
+          "contributions",
+          "tools",
+          "panels",
+          "workflows",
+          "protocol",
+          "market",
+          "ids",
+          "cli",
+          "checklist",
+          "errors",
+          "design",
+          "domains",
+          "commands",
+          "skills",
+          "security"
+        ]
+      }
+    },
+    "additionalProperties": false
+  },
+  "capabilities": []
+}

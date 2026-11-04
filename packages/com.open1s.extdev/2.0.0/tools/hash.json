@@ -1,0 +1,19 @@
+{
+  "description": "Print the canonical package hash the store and the market index use, with its file count and byte size.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to the package directory."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "capabilities": [
+    "workspace.read"
+  ]
+}

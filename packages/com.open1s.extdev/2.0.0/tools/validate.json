@@ -1,0 +1,19 @@
+{
+  "description": "Validate a BSH extension package offline against the host's rules: manifest 2.0 envelope, identity grammar, semver ranges, runtime requirements, capability vocabulary, every contribution's declared file and that file's shape. Returns structured findings with rule ids.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to the package directory."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "capabilities": [
+    "workspace.read"
+  ]
+}

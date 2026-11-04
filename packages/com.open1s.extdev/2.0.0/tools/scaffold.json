@@ -1,0 +1,65 @@
+{
+  "description": "Create a complete BSH extension package skeleton at an absolute path: manifest 2.0, tool descriptors, command(s), prompt, scoped context, panel, skill, configuration schema and a dependency-free test that passes. Pass domain and brief for a domain package: it also writes docs/design.md, declares only the tools whose files exist and leaves the planned tools in an implementation checklist. Use this instead of writing a manifest by hand.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute directory to create or fill."
+      },
+      "id": {
+        "type": "string",
+        "description": "Reverse-domain extension id, for example com.example.toolkit."
+      },
+      "name": {
+        "type": "string",
+        "description": "Display name; defaults to the id's last segment or the domain blueprint's name."
+      },
+      "version": {
+        "type": "string",
+        "description": "Semantic version; defaults to 1.0.0."
+      },
+      "runtime": {
+        "type": "string",
+        "enum": [
+          "declarative",
+          "process"
+        ],
+        "description": "declarative ships pure tool bodies; process ships server.py. Omit in domain mode to use the blueprint's recommendation."
+      },
+      "domain": {
+        "type": "string",
+        "description": "Domain profile key (knowledge, devops, data, web, documents, media, messaging, security, research, model, system, generic) or a sentence that names the domain."
+      },
+      "brief": {
+        "type": "string",
+        "description": "One or two sentences the blueprint records for this package."
+      },
+      "description": {
+        "type": "string",
+        "description": "One paragraph for the manifest; defaults to the brief or the profile summary."
+      },
+      "author": {
+        "type": "string",
+        "description": "Author string for the manifest and LICENSE."
+      },
+      "license": {
+        "type": "string",
+        "description": "SPDX license id; defaults to MIT."
+      },
+      "force": {
+        "type": "boolean",
+        "description": "Write into a non-empty directory."
+      }
+    },
+    "required": [
+      "path",
+      "id"
+    ],
+    "additionalProperties": false
+  },
+  "capabilities": [
+    "workspace.read",
+    "workspace.write"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "description": "One release gate: validation, review, canonical package hash and file sizes, and optionally a smoke run of every declared tool. Use this before installing or publishing a package.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to the package directory."
+      },
+      "smoke": {
+        "type": "boolean",
+        "description": "Also run every declared tool once."
+      },
+      "tool": {
+        "type": "string",
+        "description": "Smoke-test only this tool id."
+      },
+      "arguments": {
+        "type": "object",
+        "description": "Arguments for the smoke-tested tool."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "capabilities": [
+    "workspace.read"
+  ]
+}

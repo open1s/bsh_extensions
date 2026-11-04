@@ -1,0 +1,40 @@
+{
+  "description": "Prepare a release: validate, review, and build the market index entry for one package",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to the package directory."
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "steps": [
+    {
+      "name": "validate",
+      "tool": "validate",
+      "arguments": {
+        "path": "{{input.path}}"
+      }
+    },
+    {
+      "name": "lint",
+      "tool": "lint",
+      "arguments": {
+        "path": "{{input.path}}"
+      }
+    },
+    {
+      "name": "entry",
+      "tool": "market",
+      "arguments": {
+        "path": "{{input.path}}",
+        "action": "entry"
+      }
+    }
+  ]
+}
