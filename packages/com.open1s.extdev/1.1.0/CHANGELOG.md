@@ -2,6 +2,11 @@
 
 ## 1.1.0 - 2026-11-03
 
+- Fix migrate for 1.x manifests: a declarative runtime no longer keeps the
+  forbidden `entry` key under runtime.config, scalar contributes values are
+  accepted, tables with an `id` carry their inline payload into
+  [contribution.payload] instead of nesting it into the id, and non-string
+  entries fail with a named message instead of crashing.
 - Add a domain-first design surface: a twelve-profile catalogue (knowledge,
   devops, data, web, documents, media, messaging, security, research, model,
   system, generic), the design tool and the blueprint tool.

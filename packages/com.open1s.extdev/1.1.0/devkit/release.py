@@ -252,12 +252,40 @@ def _to_v2(legacy: dict) -> dict:
         if runtime.get(key) not in (None, [], {}):
             config[key] = runtime[key]
     config["startup"] = runtime.get("startup") or "on-demand"
+    if runtime.get("kind", "declarative") == "declarative" and "entry" in config:
+        # The declarative runtime reads package files and forbids an entry.
+        del config["entry"]
     contributions = []
     contributes = legacy.get("contributes") or {}
     for kind, key in CONTRIBUTION_GROUPS:
         values = contributes.get(key) or []
+        if not isinstance(values, list):
+            values = [values]
         for value in values:
-            contributions.append({"kind": kind, "id": value})
+            if isinstance(value, dict):
+                # 1.x tables carried their payload inline: {"id": "x", ...}.
+                # Emit the id as the contribution id and keep the rest under
+                # [contribution.payload] instead of nesting the table into id.
+                raw_id = value.get("id")
+                if not isinstance(raw_id, str) or not raw_id:
+                    fail(
+                        "a 1.x contributes.%s table needs a non-empty string 'id'; "
+                        "found %r" % (key, raw_id)
+                    )
+                payload = {
+                    name: item for name, item in value.items() if name != "id"
+                }
+                entry = {"kind": kind, "id": raw_id}
+                if payload:
+                    entry["payload"] = payload
+                contributions.append(entry)
+            elif isinstance(value, str):
+                contributions.append({"kind": kind, "id": value})
+            else:
+                fail(
+                    "a 1.x contributes.%s entry must be a string id or a table "
+                    "with an 'id'; found %r" % (key, value)
+                )
     capabilities = (legacy.get("capabilities") or {}).get("required") or []
     modern = {
         "schema_version": constants.SCHEMA_VERSION,

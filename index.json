@@ -14,7 +14,7 @@
       "version": "1.1.0",
       "description": "Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain.",
       "path": "packages/com.open1s.extdev/1.1.0",
-      "hash": "3f52b343146aebb8323c6e92a7569e99a30ded23af8f47dbacaf5dfc9cea7372"
+      "hash": "8b62e6c11d75f6eedc92b645aedcab9f67a27dcb09068438bbca55ebc2c2b6bf"
     },
     {
       "id": "com.open1s.opencode",
