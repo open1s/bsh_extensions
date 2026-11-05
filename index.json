@@ -7,7 +7,7 @@
       "version": "1.0.0",
       "description": "Real macOS screen, pointer and keyboard tools, panel, workflow and hooks built as a BSH process extension",
       "path": "packages/com.example.computer-use/1.0.0",
-      "hash": "e09b62f80e56d544af434bea7bf04e57789df208edb3fe1119e7bbc1a1e8b92b"
+      "hash": "efa1ba2286b64ca989dae2e36d6ea0597a85acd0e85642c73436070c13538d59"
     },
     {
       "id": "com.open1s.extdev",
@@ -23,7 +23,7 @@
       "version": "1.0.3",
       "description": "Free OpenCode Zen models for BSH through a local relay that speaks the anonymous lane wire shape",
       "path": "packages/com.open1s.opencode/1.0.3",
-      "hash": "be4cee79672aecea0216ce89043d0e31aab84def9b7b71deb473644ee9baee13"
+      "hash": "e8d8ec30d40124410fb22b1938054f1f50775249aeddd060487b8b6bcc5cdccb"
     }
   ]
 }
