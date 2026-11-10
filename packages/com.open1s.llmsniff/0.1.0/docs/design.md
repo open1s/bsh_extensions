@@ -34,8 +34,8 @@ Honest scope statement: a host hook sees only traffic the host mediates. It does
 
 All three blocking unknowns were resolved by reading the host implementation (`bos` repo) and the shipped example `examples/extensions/extism-hook`:
 
-1. **Export and payload.** The host calls the guest export `bsh_hook` with one JSON string `{"point": "...", "batch": [event, ...]}` (ferris-runtime/src/extism.rs:961); the plugin returns `{"action": "continue"}`. For `http.exchange` each event is metadata only — `{source: "llm", request_id, method, host, path, status, request_bytes, response_bytes, content_type, ttfb_ms, total_ms, error}` (ferris-runtime/src/hooks.rs:139). No bodies ever reach the plugin. The host redacts the URL and every string field through `redact()` (masks after `sk-`, `ghp_`, `Bearer `; 8 KiB cap) before dispatch.
-2. **Model-level view.** `model.request` events carry `{agent, data: {model, request_id, request: {model, api_mode, temperature, max_tokens, prompt_bytes, messages}}}`; `model.response` events carry `{agent, data: {request_id, response_type, response: {usage: {prompt_tokens, completion_tokens, total_tokens}}}}` (agent/src/agent/context.rs:1270-1295). `data.request.messages` and stream `response_text` contain conversation text (host-redacted string-wise, but present): the plugin must parse shape only — counts and byte sizes — and never persist them.
+1. **Export and payload.** The host calls the guest export `bsh_hook` with one JSON string `{"point": "...", "batch": [event, ...]}` (ferris-runtime/src/extism.rs:961); the plugin returns `{"action": "continue"}`. For `http.exchange` each event carries `{source, request_id, method, host, path, status, request_bytes, response_bytes, content_type, ttfb_ms, total_ms, error, request_headers, response_headers, request_body, response_body, body_truncated}` (ferris-runtime/src/hooks.rs:139-214). The tap masks credential header values as `[redacted]` and caps each body at 32 KiB (react/src/llm/vendor/tap.rs:22-42); the host re-redacts every string through `redact`/`redact_payload` before dispatch.
+2. **Model-level view.** The host's hook context is a `HashMap<String, String>` (agent/src/agent/hooks.rs:104), so every value under `data` is a string and a nested document arrives serialized. `model.request` carries `{agent, data: {model, request_id, request}}` where `request` is the JSON text `{request_id, model, api_mode, temperature, max_tokens, prompt_bytes, messages}` (agent/src/agent/context.rs:1270-1282); `model.response` carries either `response` (the react document `{response_type, usage}`) or, for a streamed step, `response_bytes`, `response_text` and `had_tool_call` directly on `data` (context.rs:1284-1295, 1398-1422). The plugin parses those strings (`object`/`number`/`boolean` in plugin/src/lib.rs) before reading shape. The host caps a hook value at 8 KiB, so a large `request` document arrives truncated: the record is kept with a `request_document` marker instead of the counts (the raw body is on the exchange). `data.request.messages` and `response_text` contain conversation text (host-redacted string-wise, but present): the plugin must parse shape only — counts and byte sizes — and never persist them.
 3. **Storage and tools.** Extism plugins get private KV through the `bsh_host` function with ops `storage_get`/`storage_set`, gated by the `extension.storage` capability (low risk, devkit/constants.py:61), and can expose tools via `bsh_tools`/`bsh_call_tool`. Both are proven by the working `extism-hook` example. Toolchain confirmed: cargo 1.98.1 with `wasm32-unknown-unknown` installed.
 
 Consequence: capture correlates `http.exchange` with `model.request`/`model.response` by `request_id`, stores redacted records in extension storage, and can offer a query tool. The design ships all three hook points plus one `captures` tool.
@@ -44,21 +44,25 @@ Consequence: capture correlates `http.exchange` with `model.request`/`model.resp
 
 | Kind | Id | File | Capability | Purpose |
 |---|---|---|---|---|
-| hook | http.exchange | — (declaration only) | hooks.observe | Transport view: method, host, path, status, bytes, latency per LLM call. |
-| hook | model.request | — (declaration only) | hooks.observe | Request view: model, api_mode, prompt size; messages parsed for shape, never stored. |
-| hook | model.response | — (declaration only) | hooks.observe | Response view: token usage per request_id; response text never stored. |
-| tool | captures | — (bsh_tools/bsh_call_tool) | agent.tools.register | Query the last N redacted records, optional point filter. |
+| hook | http.exchange | — (declaration only) | hooks.observe | Transport view: method, host, path, status, bytes, latency, masked headers and bounded bodies per LLM call. |
+| hook | model.request | — (declaration only) | hooks.observe | Request view: model, api_mode, prompt size; messages parsed for shape, the raw body comes from the exchange. |
+| hook | model.response | — (declaration only) | hooks.observe | Response view: token usage per request_id; the raw body comes from the exchange. |
+| tool | captures | — (bsh_tools/bsh_call_tool) | agent.tools.register | List the last N redacted records with metadata and headers, optional point filter. |
+| tool | exchange | — (bsh_tools/bsh_call_tool) | agent.tools.register | Read one exchange with its stored headers and bodies. |
 | command | start | commands/start.md (exists) | ui.commands | Explain what capture is running and how to read it. |
 | prompt | rules | prompts/rules.md (rewrite) | agent.prompts.provide | Never repeat a credential; describe exchanges by shape. |
 | context | llm-traffic | contexts/security.md → contexts/llm-traffic.md (rename + rewrite) | agent.context.provide | What is captured, what is redacted, retention bounds. |
 | skill | llmsniff-redaction | skills/llmsniff-redaction/SKILL.md (rewrite) | agent.skills.provide | Read captures safely; escalate only shapes, never values. |
-| panel | overview | panels/overview.json (rewrite) | ui.panels | Last N redacted exchanges: provider, model, status, latency, token counts. |
+| panel | overview | panels/overview.json (rewrite) | ui.panels | Last N redacted exchanges plus the newest exchange's request/response previews, status, latency and token counts. |
 
 Removed from the scaffold (scanner leftovers and process-runtime artifacts): `tools/describe.json`, `tools/echo.json`, `server.py`, `commands/run-scan.md`, `commands/write-report.md`, and capabilities `process.execute`.
 
 ## Tool surface
 
-One tool: `captures` — arguments `{limit?: int <= 100, point?: "http.exchange" | "model.request" | "model.response"}`; returns the newest redacted records from extension storage, newest first, with the stored count and whether older records were evicted. Implemented through the plugin's `bsh_tools`/`bsh_call_tool` exports, as proven by the extism-hook example.
+Two tools, both implemented through the plugin's `bsh_tools`/`bsh_call_tool` exports (as proven by the extism-hook example):
+
+- `captures` — `{limit?: int <= 100, point?: "http.exchange" | "model.request" | "model.response"}`; returns the newest records newest first, each with metadata and masked headers (bodies stripped, `has_bodies` when the exchange still holds them), plus the stored and eviction counts.
+- `exchange` — `{request_id?: string, include_headers?: bool}`; returns one `http.exchange` record with its stored request/response headers and bodies, defaulting to the newest exchange; an unknown id lists the recent ids.
 
 ## Capabilities and grants
 
@@ -66,7 +70,7 @@ One tool: `captures` — arguments `{limit?: int <= 100, point?: "http.exchange"
 |---|---|---|---|
 | hooks.observe | high | receives observe-hook batches from the host seam | bsh ext grant com.open1s.llmsniff hooks.observe |
 | extension.storage | low | private KV for redacted capture records | bsh ext grant com.open1s.llmsniff extension.storage |
-| agent.tools.register | low | exposes the captures query tool | automatic |
+| agent.tools.register | low | exposes the captures and exchange tools | automatic |
 | ui.commands | low | adds /start | automatic for community packages |
 | agent.prompts.provide | low | supplies the redaction rules | automatic |
 | agent.context.provide | low | adds the capture conventions | automatic |
@@ -85,8 +89,8 @@ Deliberately not requested: `network.http`, `process.execute`, `workspace.*`, `s
 ## Safety rules
 
 - Redact before storage: `Authorization`, `x-api-key`, `api-key`, `cookie`, any bearer/`sk-`-shaped token in headers or bodies. Store presence and a stable fingerprint, never the value.
-- Conversation text is never persisted: `model.request` messages are counted and sized, `model.response` text is never stored; only usage numbers survive.
-- Raw bodies are not persisted in v0; a configuration flag may allow bounded raw retention later, default off.
+- Conversation text reaches storage only as part of a captured body: `http.exchange` keeps request/response bodies for the newest 12 exchanges, 12 KiB per side, re-redacted; `model.request` messages are counted and sized, `model.response` text is not copied separately.
+- Bodies are bounded twice: the host cuts at 32 KiB (`body_truncated`), the plugin keeps 12 KiB per side and says when it cut. Older records keep metadata and headers and report that the body was dropped.
 - Bound everything: record count, record bytes, panel rows. Report truncation honestly.
 - No network egress: the plugin declares no network capability and the runtime cannot open sockets.
 - Capture is host-mediated traffic only; the panel and context must say so, so nobody mistakes this for system-wide sniffing.

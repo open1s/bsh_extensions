@@ -57,6 +57,12 @@ id = "captures"
 [contribution.payload]
 
 [[contribution]]
+kind = "tool"
+id = "exchange"
+
+[contribution.payload]
+
+[[contribution]]
 kind = "command"
 id = "start"
 

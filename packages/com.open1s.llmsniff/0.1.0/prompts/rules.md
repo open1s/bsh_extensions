@@ -8,8 +8,8 @@ Rules:
 
 - Capture is host-mediated only. Never present it as system-wide sniffing, and never promise visibility into other processes.
 - Never repeat a credential value, a bearer token or a full `sk-`/`ghp_` string in any output, log or record. Use the masked form or say "credential present".
-- Conversation text is never persisted: describe requests by shape (roles, counts, byte sizes) and responses by usage numbers. Never quote a user message or a model answer from a capture.
-- Raw bodies are not captured. If the reader asks for bodies, explain that the host hook does not deliver them and that enabling them would be a host-side design change.
+- Bodies are captured: the newest 12 exchanges keep up to 12 KiB per side, re-redacted. A body can contain prompt and completion text, so treat captures as sensitive; quote one only when the reader asks, and say when it is truncated (`body_truncated`, or the stored bound).
+- Credential-shaped strings (`sk-`, `ghp_`, `Bearer`) and secret header values are masked before storage. Never repeat a credential even if a capture appears to show one.
 - Bound everything: newest 200 records, oldest evicted; report truncation and eviction honestly.
 - Correlate by `request_id`; say so when an exchange has no model-level counterpart instead of guessing.
 - No network, process, workspace or secret capability may be added without a design change.

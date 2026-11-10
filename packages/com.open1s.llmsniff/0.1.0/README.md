@@ -6,13 +6,13 @@ Id: com.open1s.llmsniff  Version: 0.1.0  Runtime: extism  Domain: security
 
 ## Scope (read this first)
 
-Capture is **host-mediated traffic only**. The plugin sees what the BSH host sends to and receives from LLM provider APIs — it is not a system-wide sniffer, and traffic from other processes is invisible to it. Records hold metadata and redacted previews only: method, host, path, status, byte sizes, latency, token usage, message counts. Request and response bodies, header values, conversation text and credential values are never stored.
+Capture is **host-mediated traffic only**. The plugin sees what the BSH host sends to and receives from LLM provider APIs — it is not a system-wide sniffer, and traffic from other processes is invisible to it. Records hold metadata (method, host, path, status, byte sizes, latency, token usage, message counts), the request and response headers with credential values masked, and bounded request/response bodies for the newest twelve exchanges. Credential-shaped strings in a body are masked before storage; conversation text reaches a record only as part of a captured body.
 
 ## How it works
 
 - The host dispatches observe-hook batches to the plugin's `bsh_hook` export.
-- The plugin re-redacts every string (defense in depth behind the host's own redaction), parses each event for shape, correlates records by `request_id`, and keeps the newest 200 records in its private extension storage (oldest evicted; eviction is reported, never hidden).
-- The `captures` tool queries the records (`limit` 1-100, optional `point` filter); the overview panel renders the newest exchanges and token totals.
+- The plugin re-redacts every string (defense in depth behind the host's own redaction), parses each event for shape, correlates records by `request_id`, and keeps the newest 200 records in its private extension storage (oldest evicted; eviction is reported, never hidden). Bodies are kept for the newest twelve exchanges, 12 KiB per side; older records keep the metadata and headers and say the body was dropped.
+- The `captures` tool lists the records (metadata and headers, `limit` 1-100, optional `point` filter); the `exchange` tool returns one record with its stored headers and bodies. The overview panel renders the newest exchange with previews and the token totals.
 
 ## Design
 
@@ -38,6 +38,16 @@ The hook never fires without the explicit observe grant:
     bsh ext grant com.open1s.llmsniff hooks.observe
     bsh ext grant com.open1s.llmsniff extension.storage
 
+## Verify a capture
+
+The extension stores its records in private extension storage, not in the package:
+
+    python3 -m json.tool ~/.bos/bsh/extensions/extension-data/com.open1s.llmsniff/com.open1s.llmsniff/captures
+
+Look for a `"point": "http.exchange"` record with `request_headers` / `request_body`. In the app, ask the agent to call `captures` and then `exchange` with a `request_id`, or open the LLM Sniffer panel (it shows the newest exchange's previews).
+
+`bsh ext mock . captures` runs the plugin against a **scratch data directory**, so it always reports an empty store: it proves the plugin loads, not what the app captured.
+
 ## Capabilities
 
 - hooks.observe (high) — receives observe-hook batches from the host seam
@@ -48,9 +58,11 @@ The hook never fires without the explicit observe grant:
 
 `hooks.observe` is the only way a package can receive the host's observe-hook batches; without the explicit grant the hook never fires and the plugin captures nothing. It is a request, not an authorization — the reader grants it deliberately.
 
-What it enables: reading the metadata the host already redacts (method, host, path, status, byte sizes, latency, token usage, message counts) for the LLM calls the host itself makes.
+What it enables: reading what the host observed for the LLM calls it makes — method, host, path, status, byte sizes, latency, token usage, message counts, the request and response headers (secret header values masked by the host as `[redacted]`), and bounded request/response bodies for the newest twelve exchanges (12 KiB per side; the host cuts a body at 32 KiB).
 
-What it cannot do: it delivers no request or response bodies, no header values, and no other process's traffic. The plugin runs in the wasm sandbox with no network, process, workspace or secret capability, so it cannot exfiltrate what it sees, execute anything, or read files. Conversation text and credential values are never persisted, and the stored records are re-redacted and size-bounded by the plugin.
+Privacy: a captured body can contain prompt and completion text. That is the point of the feature and why `hooks.observe` is a deliberate grant — treat captures as sensitive. The plugin masks credential-shaped strings (`sk-`, `ghp_`, `Bearer`) before storage but does not redact conversation content.
+
+What it cannot do: it cannot see other processes' traffic, open a socket, run a process, read a file or read a secret. The plugin runs in the wasm sandbox with no network, process, workspace or secret capability, so it cannot exfiltrate what it sees.
 
 Deliberately not requested: network, process, workspace and secret capabilities. The wasm runtime cannot use them; their absence is the design's main safety property.
 

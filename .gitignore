@@ -3,4 +3,4 @@ __pycache__/
 .DS_Store
 .bsh/
 .bos/
-packages/com.open1s.llmsniff/target/
+packages/com.open1s.llmsniff/0.1.0/plugin/target

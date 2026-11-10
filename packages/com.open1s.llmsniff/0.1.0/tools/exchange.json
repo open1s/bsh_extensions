@@ -1,0 +1,18 @@
+{
+  "description": "Return one captured LLM exchange with its stored request and response headers and bodies (up to 12 KiB per side; the host cut a body at 32 KiB and `body_truncated` says so). Pass a request_id from `captures`; without one the newest exchange is returned. Exchanges older than the newest 12 no longer keep bodies.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "description": "The exchange to read. Defaults to the newest http.exchange record."
+      },
+      "include_headers": {
+        "type": "boolean",
+        "description": "Include request and response headers. Default true."
+      }
+    },
+    "additionalProperties": false
+  },
+  "capabilities": []
+}

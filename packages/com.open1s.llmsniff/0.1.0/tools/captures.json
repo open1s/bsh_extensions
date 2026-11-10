@@ -1,5 +1,5 @@
 {
-  "description": "Read the newest redacted LLM-traffic records captured from the BSH host's observe hooks. Host-mediated traffic only: metadata and redacted previews, never request or response bodies or conversation text.",
+  "description": "List the newest redacted LLM-traffic records captured from the BSH host's observe hooks. Host-mediated traffic only. Each row carries metadata and the masked request/response headers; bodies are read one exchange at a time with the `exchange` tool, and the newest 12 exchanges keep them.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -11,7 +11,11 @@
       },
       "point": {
         "type": "string",
-        "enum": ["http.exchange", "model.request", "model.response"],
+        "enum": [
+          "http.exchange",
+          "model.request",
+          "model.response"
+        ],
         "description": "Only records from this hook point."
       }
     },
