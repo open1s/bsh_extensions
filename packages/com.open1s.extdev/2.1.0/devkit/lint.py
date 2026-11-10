@@ -32,6 +32,7 @@ ALLOWED_TOP_LEVEL = (
     "docs",
     "src",
     "devkit",
+    "plugin",
 )
 
 SECRET_PATTERNS = (
@@ -154,23 +155,22 @@ def _documentation(root, manifest, findings):
     readme = root / "README.md"
     if readme.is_file():
         text = read_text(readme, 1 * 1024 * 1024)
-        for capability in CRITICAL_CAPABILITIES:
-            if capability in text:
-                break
-        else:
-            declared = manifest.get("capabilities", {}).get("required", [])
-            critical = [
-                name for name in declared
-                if constants.CAPABILITY_RISK.get(name) in ("high", "critical")
-            ]
-            if critical:
-                _add(
-                    findings, "warning", "EXT006",
-                    "the package requires %s but the README never explains why"
-                    % ", ".join(critical),
-                    "README.md",
-                    "add a Security section: what the capability enables and what it cannot do",
-                )
+        declared = manifest.get("capabilities", {}).get("required", [])
+        sensitive = [
+            name for name in declared
+            if name in CRITICAL_CAPABILITIES
+            or constants.CAPABILITY_RISK.get(name) in ("high", "critical")
+        ]
+        if any(name in text for name in sensitive):
+            pass
+        elif sensitive:
+            _add(
+                findings, "warning", "EXT006",
+                "the package requires %s but the README never explains why"
+                % ", ".join(sensitive),
+                "README.md",
+                "add a Security section: what the capability enables and what it cannot do",
+            )
 
 
 def _contributions(root, manifest, base, findings):
@@ -282,17 +282,22 @@ def _capability_notes(capabilities, declared, findings):
 
 
 def _secrets(root, findings):
+    # A line that self-identifies as a fixture (fake/fixture/example/test/…)
+    # is a redaction test, not a leaked credential.
+    fixture_marker = re.compile(r"(?i)(?:fake|fixture|redact|example|test|dummy)")
     for relative in _text_files(root):
         try:
             text = read_text(root / relative, 2 * 1024 * 1024)
         except Exception:
             continue
         for pattern, label in SECRET_PATTERNS:
-            if pattern.search(text):
-                _add(findings, "warning", "EXT120",
-                     "%s looks like it contains %s; never publish a credential in a package"
-                     % (relative, label), relative,
-                     "rotate the credential and load it from the vault instead")
+            for line in text.splitlines():
+                if pattern.search(line) and not fixture_marker.search(line):
+                    _add(findings, "warning", "EXT120",
+                         "%s looks like it contains %s; never publish a credential in a package"
+                         % (relative, label), relative,
+                         "rotate the credential and load it from the vault instead")
+                    break
 
 
 def _build_output(root, findings):

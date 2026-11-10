@@ -1,0 +1,24 @@
+{
+  "title": "LLM Sniffer",
+  "icon": null,
+  "location": "right",
+  "default_visibility": "visible",
+  "view": {
+    "schema_version": "1.0",
+    "root": {
+      "type": "column",
+      "children": [
+        {"type": "heading", "text": "LLM Sniffer", "level": 2},
+        {"type": "text", "text": "Captures the LLM API traffic the BSH host mediates, via the http.exchange, model.request and model.response observe hooks. Host-mediated traffic only: metadata and redacted previews, never bodies or conversation text."},
+        {"type": "text", "text": "Live rows are rendered by the plugin's bsh_panel export from the newest 200 stored records (oldest evicted). Use the captures tool to query records."},
+        {"type": "divider"},
+        {"type": "button", "label": "Read newest captures", "action": "captures", "style": "secondary"},
+        {"type": "list", "items": [
+          {"title": "captures", "detail": "query the newest redacted records, optional point filter"},
+          {"title": "hooks.observe grant", "detail": "bsh ext grant com.open1s.llmsniff hooks.observe"},
+          {"title": "scope note", "detail": "not a system-wide sniffer; other processes' traffic is invisible"}
+        ]}
+      ]
+    }
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "description": "Return the BSH extension standard as markdown for one topic: overview, design, domains, manifest, runtime, capabilities, contributions, tools, panels, commands, skills, workflows, protocol, security, market, ids, cli, checklist or errors. Read design and domains before designing a package; read manifest, tools and protocol before writing one.",
+  "description": "Return the BSH extension standard as markdown for one topic: overview, design, domains, manifest, runtime, capabilities, contributions, hooks, tools, panels, commands, skills, workflows, protocol, security, market, ids, cli, checklist or errors. Read design and domains before designing a package; read manifest, tools and protocol before writing one, and hooks before a package that observes the model or the wire.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -12,6 +12,7 @@
           "runtime",
           "capabilities",
           "contributions",
+          "hooks",
           "tools",
           "panels",
           "workflows",

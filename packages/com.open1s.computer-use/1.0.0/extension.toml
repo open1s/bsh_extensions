@@ -1,7 +1,7 @@
 schema_version = "2.0"
 
 [extension]
-id = "com.example.computer-use"
+id = "com.open1s.computer-use"
 name = "Computer Use"
 version = "1.0.0"
 description = "A real, opt-in screen, pointer and keyboard extension for macOS"
@@ -36,57 +36,10 @@ required = [
     "events.subscribe",
 ]
 
+# Usage entries: 1 tool + 1 command + 1 panel = 3
 [[contribution]]
 kind = "tool"
-id = "screen_size"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "screenshot"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "cursor_position"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "mouse_move"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "mouse_click"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "mouse_drag"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "scroll"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "type_text"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "key_press"
+id = "computer"
 
 [contribution.payload]
 

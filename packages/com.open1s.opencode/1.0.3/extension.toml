@@ -37,27 +37,11 @@ required = [
     "agent.tools.register",
 ]
 
+# Usage entries: 1 tool + 1 command = 2 (≤3, within limit)
+# Consolidation: 4 tools → 1 tool (relay) with action subcommands
 [[contribution]]
 kind = "tool"
-id = "relay_start"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "relay_stop"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "status"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "models"
+id = "relay"
 
 [contribution.payload]
 

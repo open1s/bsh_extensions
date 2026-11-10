@@ -1,4 +1,4 @@
-# Computer Use (BSH example)
+# Computer Use
 
 A real macOS screen, pointer and keyboard extension. It exists to verify the BSH
 extension framework end to end, not to be the product's built-in computer-use
@@ -34,32 +34,31 @@ framework bug.
 ## Install and verify
 
 ```text
-bsh ext validate examples/extensions/computer-use
-bsh ext install examples/extensions/computer-use
-bsh ext grant com.example.computer-use process.execute --scope program:python3
-bsh ext grant com.example.computer-use computer.use
-bsh ext grant com.example.computer-use agent.tools.register
-bsh ext grant com.example.computer-use agent.prompts.provide
-bsh ext grant com.example.computer-use agent.skills.provide
-bsh ext grant com.example.computer-use agent.workflows.provide
-bsh ext grant com.example.computer-use ui.panels
-bsh ext grant com.example.computer-use ui.commands
-bsh ext grant com.example.computer-use events.subscribe
-bsh ext info com.example.computer-use
+bsh ext validate packages/com.open1s.computer-use/1.0.0
+bsh ext grant com.open1s.computer-use process.execute --scope program:python3
+bsh ext grant com.open1s.computer-use computer.use
+bsh ext grant com.open1s.computer-use agent.tools.register
+bsh ext grant com.open1s.computer-use agent.prompts.provide
+bsh ext grant com.open1s.computer-use agent.skills.provide
+bsh ext grant com.open1s.computer-use agent.workflows.provide
+bsh ext grant com.open1s.computer-use ui.panels
+bsh ext grant com.open1s.computer-use ui.commands
+bsh ext grant com.open1s.computer-use events.subscribe
+bsh ext info com.open1s.computer-use
 ```
 
-Expected info: `active`, `healthy`, tools `computer-use__screen_size` …
-`computer-use__inspect`, panel `computer-use__desktop`, command
-`computer-use__refresh`.
+Expected info: `active`, `healthy`, tools `computer__screen_size` …
+`computer__inspect`, panel `computer__desktop`, command
+`computer__refresh`.
 
 Safe smoke tests, in order:
 
 ```text
-bsh ext mock examples/extensions/computer-use screen_size '{}'
-bsh ext mock examples/extensions/computer-use cursor_position '{}'
-bsh ext mock examples/extensions/computer-use screenshot '{}'
-bsh ext integrate com.example.computer-use desktop.control '{}'
-bsh ext integrate com.example.computer-use desktop.refresh '{}'
+bsh ext mock com.open1s.computer-use screen_size '{}'
+bsh ext mock com.open1s.computer-use cursor_position '{}'
+bsh ext mock com.open1s.computer-use screenshot '{}'
+bsh ext integrate com.open1s.computer-use desktop.control '{}'
+bsh ext integrate com.open1s.computer-use desktop.refresh '{}'
 ```
 
 The last command proves the command seam and returns a revision-2 panel

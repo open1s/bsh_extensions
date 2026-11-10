@@ -3,11 +3,11 @@
 Free [OpenCode Zen](https://opencode.ai/zen) models inside BSH, through the
 anonymous lane OpenCode's own CLI uses. No account, no API key, no subscription.
 
-The package contributes the **OpenCode Zen** model provider (keyless), four
-tools — `opencode__relay_start`, `opencode__relay_stop`, `opencode__status` and
-`opencode__models` — and a context that tells the agent when to start the relay.
-The provider points at a loopback relay this package runs, because a provider
-descriptor cannot express the wire shape the free lane requires.
+The package contributes the **OpenCode Zen** model provider (keyless), a single
+`relay` tool with action subcommands (start, stop, status, models), and a context
+that tells the agent when to start the relay. The provider points at a loopback
+relay this package runs, because a provider descriptor cannot express the wire
+shape the free lane requires.
 
 ## Why a relay instead of a plain provider
 
@@ -22,7 +22,7 @@ three:
 | CLI header set (`x-opencode-client`, `x-opencode-project: global`, `X-Session-Id`, …) | no | relay sends it |
 | `bash` **and** `read` in the tools array, non-empty schemas | no — BSH has `read_file` | relay renames `read_file` to `read` and maps the call back |
 | Streaming body | yes | relay forces it and aggregates for non-stream callers |
-| Free model catalog | baked only | `opencode__models` reads the live catalog |
+| Free model catalog | baked only | `relay` with action=models reads the live catalog |
 
 That is the same split the reference package
 ([opencode2dsh](https://github.com/FishBottle7/opencode2dsh)) makes in its
@@ -78,16 +78,16 @@ new inventory and warms the package.
    `deepseek-v4.1-flash-free`.
 3. Chat.
 
-If `opencode__status` says the relay is not running, call
-`opencode__relay_start` (or type `/` in the composer and pick the extension's
+If `relay` with action=status says the relay is not running, call
+`relay` with action=start (or type `/` in the composer and pick the extension's
 **start** command). The tool is idempotent and returns the base URL.
 
 No API key is needed: the descriptor declares `requires_key = false`, and the
 relay replaces whatever credential BSH sends with the lane's literal
 `Bearer public`.
 
-Call `opencode__relay_stop` to stop the relay, and `opencode__status` to see
-whether it listens, how many requests it forwarded and the last upstream error.
+Call `relay` with action=stop to stop the relay, and `relay` with action=status
+to see whether it listens, how many requests it forwarded and the last upstream error.
 
 ### Relay lifetime
 
@@ -96,13 +96,13 @@ launch because the manifest declares `startup = "on-startup"`, and keeps it whil
 the extension host configuration is unchanged. A workspace switch or a preset
 change that reopens the host respawns the process and the relay comes back with
 it; a BSH restart does the same. If the process failed to start (a missing
-`process.execute` grant, a taken port), `opencode__status` reports why and
-`opencode__relay_start` retries.
+`process.execute` grant, a taken port), `relay` with action=status reports why
+and `relay` with action=start retries.
 
 ### Port
 
 The provider points at `http://127.0.0.1:18765/v1`. If that port is taken, stop
-whatever owns it; `opencode__relay_start` can bind another port for diagnostics,
+whatever owns it; `relay` with action=start can bind another port for diagnostics,
 but the provider descriptor would then need the same edit.
 
 ## Free models
@@ -114,7 +114,7 @@ models it lists are the ones whose input and output prices are both zero:
 `nemotron-3.5-lightning-free`, `pulse-alpha-free`,
 `deepseek-v4.1-flash-free` and `glm-5.3-flash-free`.
 
-Because a desk-checked list rots, `opencode__models` reads
+Because a desk-checked list rots, `relay` with action=models reads
 `https://opencode.ai/inference/v1/models` every time and reports the live free
 roster with input types, output caps, context windows and reasoning support. On
 a transport failure it falls back to the baked descriptor, and the result's
@@ -136,8 +136,8 @@ DeepSeek V4.1 Flash and GLM 5.3 declare image input, the others are text only.
   The relay passes the upstream status and body through, so BSH shows it.
 - **Client-shape refusal.** HTTP 403 `FreeTierError` means upstream refused the
   request shape even with the disguise. The reference package documents this as
-  a moving target; rerun `opencode__status` and `opencode__models` to see
-  whether the lane answers at all from this network.
+  a moving target; rerun `relay` with action=status and `relay` with action=models
+  to see whether the lane answers at all from this network.
 - **Region blocks.** Some models answer 403 `REGION_BLOCKED` from some
   countries. The relay preserves the upstream body.
 - **Thinking levels.** BSH's reasoning-effort menu is a shell preference, not a
@@ -146,9 +146,9 @@ DeepSeek V4.1 Flash and GLM 5.3 declare image input, the others are text only.
   picks an effort.
 - **Context windows.** BSH's model descriptor has no context field, so the
   provider file cannot carry them. The context meter estimates; the live values
-  are in `opencode__models` and in `zen_catalog.STATIC_CONTEXT`.
+  are in `relay` with action=models and in `zen_catalog.STATIC_CONTEXT`.
 - **One model list per install.** A newly free model appears in
-  `opencode__models` immediately but in the picker only after
+  `relay` with action=models immediately but in the picker only after
   `scripts/refresh_provider.py` republishes the descriptor and the package is
   upgraded; the relay itself accepts any model id the lane serves.
 - **No live verification from every egress.** The shaping logic is covered by
@@ -159,7 +159,7 @@ DeepSeek V4.1 Flash and GLM 5.3 declare image input, the others are text only.
 ## Security
 
 - The relay binds `127.0.0.1` only and keeps no credential. Any local process
-  can use it while it runs; `opencode__relay_stop` closes it.
+  can use it while it runs; `relay` with action=stop closes it.
 - Nothing is stored: no token, no session file. Session ids live in memory for
   the process's lifetime (bounded to 1024 conversations).
 - The child process gets BSH's cleared environment, a package-root working
@@ -190,7 +190,7 @@ same JSON-RPC handshake and the relay directly, so they do not depend on it.
 | Live catalog: live ∩ free-by-metadata, cache/static fallback | Live catalog ∩ zero-price, in-memory cache, baked descriptor fallback |
 | Selectable thinking levels | Provider default effort; BSH's effort menu is global |
 | Image input by models.dev modalities | `input_types` from the live catalog's modalities |
-| Health snapshot file | `opencode__status` tool result |
+| Health snapshot file | `relay` with action=status tool result |
 | Classified error surfaces | Upstream status and body pass through unchanged |
 | IP pool / proxy rotation | Not implemented; egress is the host's network |
 | Local OpenCode delegation | Not implemented |

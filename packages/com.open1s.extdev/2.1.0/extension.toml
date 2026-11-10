@@ -39,12 +39,7 @@ required = [
     "events.subscribe",
 ]
 
-[[contribution]]
-kind = "tool"
-id = "scaffold"
-
-[contribution.payload]
-
+# Usage entries: 1 tool + 1 command + 1 panel = 3
 [[contribution]]
 kind = "tool"
 id = "design"
@@ -52,134 +47,8 @@ id = "design"
 [contribution.payload]
 
 [[contribution]]
-kind = "tool"
-id = "blueprint"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "validate"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "lint"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "check"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "smoke"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "explain"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "hash"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "market"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "bump"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "package"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "migrate"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "tool"
-id = "events"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "command"
-id = "new"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "command"
-id = "plan"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "command"
-id = "domains"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "command"
-id = "refresh"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "command"
-id = "selfcheck"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "command"
-id = "topics"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "command"
-id = "audit"
-
-[contribution.payload]
-
-[[contribution]]
 kind = "command"
 id = "publish"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "command"
-id = "reference"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "command"
-id = "grill"
 
 [contribution.payload]
 
@@ -228,12 +97,6 @@ id = "extdev-ship"
 [[contribution]]
 kind = "skill"
 id = "grill-me"
-
-[contribution.payload]
-
-[[contribution]]
-kind = "workflow"
-id = "release"
 
 [contribution.payload]
 

@@ -30,8 +30,8 @@ class ProcessProtocolTests(unittest.TestCase):
         # alone on purpose.
         requests = [
             {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "1.0", "token": "tok-1"}},
-            {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "screen_size", "arguments": {}}},
-            {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "cursor_position", "arguments": {}}},
+            {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "computer", "arguments": {"action": "screen_size"}}},
+            {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "computer", "arguments": {"action": "cursor_position"}}},
             {"jsonrpc": "2.0", "id": 4, "method": "commands/execute", "params": {"name": "refresh", "arguments": {}}},
             {"jsonrpc": "2.0", "id": 5, "method": "shutdown", "params": {}},
         ]

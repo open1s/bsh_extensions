@@ -1,0 +1,98 @@
+schema_version = "2.0"
+
+[extension]
+id = "com.open1s.llmsniff"
+name = "LLM Sniffer"
+version = "0.1.0"
+description = "Capture and parse the LLM API traffic the BSH host mediates, through the http.exchange and model observe hooks, with credentials redacted before storage."
+repository = "https://github.com/open1s/bsh_extensions"
+authors = ["open1s"]
+license = "MIT"
+
+[compatibility]
+host = ">=3.0.0, <5.0.0"
+extension_api = "^1.0"
+
+[runtime]
+kind = "extism"
+
+[runtime.config]
+entry = "plugin.wasm"
+startup = "on-demand"
+
+[capabilities]
+required = [
+    "hooks.observe",
+    "extension.storage",
+    "agent.tools.register",
+    "ui.commands",
+    "agent.prompts.provide",
+    "agent.context.provide",
+    "agent.skills.provide",
+    "ui.panels",
+]
+
+[[contribution]]
+kind = "hook"
+id = "http.exchange"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "hook"
+id = "model.request"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "hook"
+id = "model.response"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "tool"
+id = "captures"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "command"
+id = "start"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "prompt"
+id = "rules"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "context"
+id = "llm-traffic"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "skill"
+id = "llmsniff-redaction"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "panel"
+id = "overview"
+
+[contribution.payload]
+
+[resources]
+max_memory_mb = 128
+max_execution_ms = 2000
+max_output_bytes = 262144
+
+[dependencies]
+
+[services]
+provides = []
+requires = []

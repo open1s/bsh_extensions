@@ -10,7 +10,7 @@ Use this skill when the package validates and the reader wants a release.
 
 ## Gate before versioning
 
-1. check with smoke=true: validation, lint, hash, file count and a real call
+1. design with mode=check and smoke=true: validation, lint, hash, file count and a real call
    per declared tool.
 2. design with the package path and the blueprint domain: the package should
    match the blueprint or the differences should be explained.
@@ -22,9 +22,9 @@ Do not bump a version to make a gate pass. Fix the finding.
 
 ## Version and archive
 
-- bump with patch for a fix, minor for a new surface, major for a breaking
+- design with mode=bump and patch for a fix, minor for a new surface, major for a breaking
   removal or rename. Edit the changelog sentence it writes.
-- package builds a deterministic .tar.gz and reports the package hash and the
+- design with mode=package builds a deterministic .tar.gz and reports the package hash and the
   archive digest. Two builds of the same bytes produce the same digest.
 - Remove __pycache__, build output and scratch files before hashing. They are
   hashed like any other file and make the release depend on who ran the
@@ -32,18 +32,19 @@ Do not bump a version to make a gate pass. Fix the finding.
 
 ## Market entry
 
-1. market with action entry, show the JSON to the reader.
-2. market with action merge once they agree. It writes the entry and keeps
+1. design with mode=publish and action=entry, show the JSON to the reader.
+2. design with mode=publish and action=merge once they agree. It writes the entry and keeps
    index.json sorted by id and version.
-3. market with action verify. Every entry must match its directory and hash.
+3. design with mode=publish and action=verify. Every entry must match its directory and hash.
 4. The package lives at packages/<id>/<version>/ and the index points at it.
 5. Commit the package and index.json in one change. Users then run
    bsh ext market install <id>.
 
 ## Signing
 
-- keygen creates a publisher key pair; sign writes package.sig over id,
-  version and the package hash; trust records the publisher key.
+- design with mode=sign and action=keygen creates a publisher key pair; design with mode=sign
+  and action=sign writes package.sig over id, version and the package hash; design with mode=sign
+  and action=trust records the publisher key.
 - A signature proves publisher identity and package integrity. It does not
   replace capability review.
 - Never commit a private key.

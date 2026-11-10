@@ -260,6 +260,66 @@ the extension's last id segment: `com.example.toolkit` + `echo` becomes
 `toolkit__echo`, capped at 64 characters with a stable digest suffix.
 """,
 
+    "hooks": """# Observe hooks
+
+A `hook` contribution is a DECLARATION, not a file. It names one host point,
+and the host delivers that point's batches to your package. No runtime method is
+called into your code for it, so the contribution carries no payload file.
+
+The validated set is `HOOK_POINTS`:
+
+| Point | Fires | Payload |
+|---|---|---|
+| `model.request` | before one LLM request | `request_id`, `model`, `api_mode`, `temperature`, `max_tokens`, `prompt_bytes`, and `messages`: the last 48 turns as `{role, bytes, preview}` with a 512-character preview |
+| `model.response` | after one | `response_type` and `usage`: `prompt_tokens`, `completion_tokens`, `total_tokens` |
+| `tool.before` | before a tool call | `agent` and `data`, the call's own fields, value by value redacted |
+| `tool.after` | after it | `agent` and `data`, the result's own fields, value by value redacted |
+| `http.exchange` | one built-in vendor HTTP exchange | `label`, `method`, `url`, `status`, `request_bytes`, `response_bytes`, `content_type`, `ttfb_ms`, `total_ms`, `error`, `request_id`, plus `request_headers`, `response_headers`, `request_body`, `response_body` and `body_truncated` |
+
+## Declaring one
+
+`@toml
+[capabilities]
+required = ["hooks.observe"]
+
+[[contribution]]
+kind = "hook"
+id = "http.exchange"
+`
+
+`hooks.observe` is a HIGH-risk capability: declaring it is a request and
+the host grants it explicitly. The validator refuses a hook declaration without
+it, and refuses an id outside the five points, naming the set.
+
+## What a hook can and cannot see
+
+This is the decision a capture package has to make before writing code:
+
+- `http.exchange` carries the exchange itself: both header maps and BOTH
+  BODIES, cut at 32 KiB a side with `body_truncated` saying when a cap hit.
+  Header names are lowercased, repeated names are joined, and a secret header
+  value reads `[redacted]`.
+- The bodies come from the built-in vendor tap, so they are the real wire
+  bytes: the serialized request and the raw response (an SSE response is the
+  raw `data:` stream). A WASM/Extism `fetch` reports the shape only; its body
+  fields stay `null`.
+- `model.request` carries the prompt SIZE plus a 512-character preview per
+  message, never the whole text.
+- `model.response` carries usage and nothing else: no completion text.
+
+So `http.exchange` is enough to read a model call without owning a port. A
+loopback proxy is still the right choice when the package must see traffic it
+does not route through the host, or needs the bytes uncut.
+
+## Redaction
+
+The four agent points have every value passed through the host's `redact()`
+before delivery. `http.exchange` masks credential header values at capture and
+passes each body through `redact()` before it is queued, so a token inside a
+prompt never reaches the package in clear. Bounding and masking are the host's
+job; a package still owns whatever it stores.
+""",
+
     "tools": """# Tool descriptors
 
 `tools/<id>.json` is what the model sees:

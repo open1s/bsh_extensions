@@ -59,9 +59,9 @@ def panel_document() -> dict:
         ["version", VERSION],
         ["runtime", "process (python3)"],
         ["python", sys.version.split()[0]],
-        ["tools", "14"],
-        ["commands", "9"],
-        ["skills", "4"],
+        ["tools", "1"],
+        ["commands", "1"],
+        ["skills", "5"],
         ["domain profiles", "12"],
         ["events received", str(len(EVENTS))],
         ["uptime", "%ss" % uptime()],
@@ -134,7 +134,7 @@ def topics_document() -> dict:
     for name in reference.topics():
         items.append({
             "title": name,
-            "detail": "ask the agent to run explain with topic=" + name,
+            "detail": "ask the agent to run design with mode=explain and topic=" + name,
             "action": "refresh",
         })
     return {
@@ -143,7 +143,7 @@ def topics_document() -> dict:
             "type": "column",
             "children": [
                 {"type": "heading", "text": "Reference topics", "level": 2},
-                {"type": "text", "text": "The explain tool returns each topic as markdown."},
+                {"type": "text", "text": "The design tool with mode=explain returns each topic as markdown."},
                 {"type": "list", "items": items},
                 {"type": "button", "label": "Back", "action": "refresh"},
             ],
@@ -169,7 +169,7 @@ def domains_document() -> dict:
                     "type": "text",
                     "text": "Call design with a domain and one sentence of brief; "
                             "the blueprint names the runtime, tools, grants, safety "
-                            "rules and build order. scaffold starts the package.",
+                            "rules and build order. Use mode=scaffold to start the package.",
                 },
                 {
                     "type": "table",
@@ -191,6 +191,33 @@ def run_self_check() -> dict:
     return LAST_CHECK
 
 
+def publish_workflow_template() -> dict:
+    """A workflow template for publishing an extension.
+    
+    This is inserted by the /publish command template.
+    """
+    return {
+        "schema_version": "1.0",
+        "root": {
+            "type": "column",
+            "children": [
+                {"type": "heading", "text": "Publish Extension Workflow", "level": 2},
+                {"type": "text", "text": "Use this workflow to publish your BSH extension:"},
+                {"type": "list", "items": [
+                    {"title": "Check", "detail": "Run design with mode=check and path=<package> to validate"},
+                    {"title": "Design", "detail": "Run design with mode=blueprint to compare with package"},
+                    {"title": "Version", "detail": "Run design with mode=bump to update version"},
+                    {"title": "Package", "detail": "Run design with mode=package to build release archive"},
+                    {"title": "Market", "detail": "Run design with mode=publish to add to market index"},
+                ]},
+                {"type": "divider"},
+                {"type": "text", "text": "The /publish command inserts this template into your workflow."},
+                {"type": "button", "label": "Close", "action": "panel"},
+            ],
+        },
+    }
+
+
 # --- dispatch --------------------------------------------------------------
 
 
@@ -202,6 +229,12 @@ def handle_tools_call(params):
     arguments = params.get("arguments") or {}
     if not isinstance(arguments, dict):
         raise ToolError("arguments must be a JSON object")
+    
+    # Consolidated design tool with modes
+    if name == "design":
+        mode = arguments.get("mode", "design")
+        arguments["mode"] = mode
+    
     try:
         value = dispatch(name, arguments, CONFIG, state())
     except DevkitError as error:
@@ -214,16 +247,71 @@ def handle_tools_call(params):
 
 def handle_command(params):
     name = str(params.get("name") or "").rsplit("__", 1)[-1]
-    if name in ("refresh", "panel", ""):
-        return panel_document()
+    arguments = params.get("arguments") or {}
+    
+    # Consolidated design tool handles all modes
+    if name == "design":
+        return handle_tools_call(params)
+    
+    # Legacy commands that route to design with modes
+    if name == "validate":
+        arguments = dict(arguments)  # make a copy
+        arguments["mode"] = "check"
+        return handle_tools_call({"name": "design", "arguments": arguments})
+    if name == "lint":
+        arguments = dict(arguments)
+        arguments["mode"] = "lint"
+        return handle_tools_call({"name": "design", "arguments": arguments})
+    if name == "smoke":
+        arguments = dict(arguments)
+        arguments["mode"] = "smoke"
+        return handle_tools_call({"name": "design", "arguments": arguments})
+    if name == "explain":
+        arguments = dict(arguments)
+        arguments["mode"] = "explain"
+        return handle_tools_call({"name": "design", "arguments": arguments})
+    if name == "hash":
+        arguments = dict(arguments)
+        arguments["mode"] = "hash"
+        return handle_tools_call({"name": "design", "arguments": arguments})
+    if name == "market":
+        arguments = dict(arguments)
+        arguments["mode"] = "publish"
+        return handle_tools_call({"name": "design", "arguments": arguments})
+    if name == "bump":
+        arguments = dict(arguments)
+        arguments["mode"] = "bump"
+        return handle_tools_call({"name": "design", "arguments": arguments})
+    if name == "package":
+        arguments = dict(arguments)
+        arguments["mode"] = "package"
+        return handle_tools_call({"name": "design", "arguments": arguments})
+    if name == "scaffold":
+        arguments = dict(arguments)
+        arguments["mode"] = "scaffold"
+        return handle_tools_call({"name": "design", "arguments": arguments})
+    if name == "blueprint":
+        arguments = dict(arguments)
+        arguments["mode"] = "blueprint"
+        return handle_tools_call({"name": "design", "arguments": arguments})
+    if name == "migrate":
+        arguments = dict(arguments)
+        arguments["mode"] = "migrate"
+        return handle_tools_call({"name": "design", "arguments": arguments})
+    
+    if name == "publish":
+        # publish command is a workflow template
+        return publish_workflow_template()
     if name == "selfcheck":
         progress("linting this package")
         run_self_check()
         return panel_document()
-    if name == "topics":
-        return topics_document()
     if name == "domains":
         return domains_document()
+    if name == "topics":
+        return topics_document()
+    if name in ("refresh", "panel", ""):
+        return panel_document()
     raise ToolError("unknown command %r" % name)
 
 

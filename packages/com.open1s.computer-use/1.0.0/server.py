@@ -514,6 +514,38 @@ def screenshot(path: str = "", pid=None, window=None):
 
 
 def dispatch(name, args):
+    # Consolidated computer tool with action subcommands
+    if name == "computer":
+        action = args.get("action")
+        if action is None:
+            raise RuntimeError("computer tool requires 'action' parameter")
+        
+        if action == "screen_size":
+            return screen_size()
+        if action == "list_windows":
+            return list_windows(args.get("pid"), args.get("limit", 40), args.get("include_overlays", False))
+        if action == "screenshot":
+            return screenshot(str(args.get("path", "")), args.get("pid"), args.get("window"))
+        if action == "cursor_position":
+            return cursor_position()
+        if action == "mouse_move":
+            return mouse_move(args["x"], args["y"], args.get("target_pid"))
+        if action == "mouse_click":
+            return mouse_click(args["x"], args["y"], args.get("button", "left"), args.get("clicks", 1), args.get("target_pid"))
+        if action == "mouse_drag":
+            return mouse_drag(
+                args["from_x"], args["from_y"], args["to_x"], args["to_y"],
+                args.get("button", "left"), args.get("duration_ms", 300), args.get("target_pid"),
+            )
+        if action == "scroll":
+            return scroll(args["delta_y"], args.get("delta_x", 0), args.get("x"), args.get("y"), args.get("target_pid"))
+        if action == "type_text":
+            return type_text(args["text"], args.get("target_pid"))
+        if action == "key_press":
+            return key_press(args["key"], args.get("modifiers"), args.get("target_pid"))
+        raise RuntimeError(f"unknown action: {action}")
+    
+    # Legacy tool names for backward compatibility
     if name == "screen_size":
         return screen_size()
     if name == "list_windows":
@@ -579,7 +611,7 @@ def main():
         try:
             if method == "initialize":
                 result = {
-                    "server": "com.example.computer-use",
+                    "server": "com.open1s.computer-use",
                     "tools": TOOLS,
                 }
             elif method == "tool":

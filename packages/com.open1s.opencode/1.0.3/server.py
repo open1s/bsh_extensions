@@ -90,7 +90,7 @@ def tool_status(arguments):
             "error": catalog["error"],
         }
     if not RELAY.running:
-        payload["hint"] = "the relay is not running; call opencode__relay_start before selecting an OpenCode Zen model"
+        payload["hint"] = "the relay is not running; call relay with action=start before selecting an OpenCode Zen model"
     return payload
 
 
@@ -99,12 +99,21 @@ def tool_models(arguments):
     return catalog
 
 
-TOOLS = {
-    "relay_start": tool_relay_start,
-    "relay_stop": tool_relay_stop,
-    "status": tool_status,
-    "models": tool_models,
-}
+def relay_tool(arguments):
+    """Consolidated relay tool with action subcommands."""
+    action = arguments.get("action")
+    if action is None:
+        raise ValueError("relay tool requires 'action' parameter: start, stop, status, or models")
+    
+    if action == "start":
+        return tool_relay_start(arguments)
+    if action == "stop":
+        return tool_relay_stop(arguments)
+    if action == "status":
+        return tool_status(arguments)
+    if action == "models":
+        return tool_models(arguments)
+    raise ValueError(f"unknown action: {action}")
 
 
 def _emit(payload):
@@ -139,20 +148,45 @@ def handle(request):
         return None, False
     if method == "tools/call":
         name = _tool_name(params.get("name"))
-        handler = TOOLS.get(name)
-        if handler is None:
-            _error(request_id, -32601, "unknown tool %r" % name)
+        arguments = params.get("arguments") or {}
+        
+        # Consolidated relay tool with action subcommands
+        if name == "relay":
+            try:
+                result = relay_tool(arguments)
+            except ValueError as error:
+                _error(request_id, -32602, str(error))
+                return None, True
+            except Exception as error:
+                traceback.print_exc(file=sys.stderr)
+                _error(request_id, -32000, "%s: %s" % (type(error).__name__, error))
+                return None, True
+            _reply(request_id, result)
             return None, True
-        try:
-            result = handler(params.get("arguments") or {})
-        except ValueError as error:
-            _error(request_id, -32602, str(error))
+        
+        # Legacy tool names for backward compatibility
+        legacy_actions = {
+            "relay_start": "start",
+            "relay_stop": "stop",
+            "status": "status",
+            "models": "models",
+        }
+        if name in legacy_actions:
+            arguments = dict(arguments)
+            arguments["action"] = legacy_actions[name]
+            try:
+                result = relay_tool(arguments)
+            except ValueError as error:
+                _error(request_id, -32602, str(error))
+                return None, True
+            except Exception as error:
+                traceback.print_exc(file=sys.stderr)
+                _error(request_id, -32000, "%s: %s" % (type(error).__name__, error))
+                return None, True
+            _reply(request_id, result)
             return None, True
-        except Exception as error:
-            traceback.print_exc(file=sys.stderr)
-            _error(request_id, -32000, "%s: %s" % (type(error).__name__, error))
-            return None, True
-        _reply(request_id, result)
+        
+        _error(request_id, -32601, "unknown tool %r" % name)
         return None, True
     if method and method.startswith("$/progress"):
         return None, True

@@ -25,7 +25,7 @@ web work; a SQL helper is data work; a team playbook is knowledge work.
 
 ## 2. Choose the domain
 
-Call explain with topic domains, or call design directly. The catalogue is:
+Call design with topic=domains to list the catalogue, or call design directly. The catalogue is:
 knowledge, devops, data, web, documents, media, messaging, security,
 research, model, system and generic.
 
@@ -38,7 +38,7 @@ research, model, system and generic.
 
 ## 3. Call design
 
-Pass domain, brief, and when known an absolute path and a reverse-domain id.
+Pass mode=design, domain, brief, and when known an absolute path and a reverse-domain id.
 Do not invent a publisher domain; com.example is a placeholder and must be
 replaced before release.
 
@@ -69,11 +69,11 @@ is written before that confirmation.
 
 ## 5. Scaffold
 
-Call scaffold with domain, brief, path, id and the confirmed runtime. It
+Call design with mode=scaffold, domain, brief, path, id and the confirmed runtime. It
 writes a validating package plus docs/design.md. It declares only the tools
 whose files exist; the planned tools stay in the checklist.
 
-For an existing package, call blueprint instead of scaffold to write
+For an existing package, call design with mode=blueprint instead of scaffold to write
 docs/design.md without touching the package.
 
 ## Selection heuristics

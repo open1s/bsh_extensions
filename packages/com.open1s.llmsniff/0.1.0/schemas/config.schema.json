@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "greeting": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Greeting the package appends to its output."
+    },
+    "verbose": {
+      "type": "boolean",
+      "description": "Include extra fields in the describe tool."
+    }
+  },
+  "additionalProperties": false
+}

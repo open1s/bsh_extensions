@@ -2,6 +2,9 @@
 
 ## 1.0.3 — 2026-11-03
 
+- **Consolidated to 3 usage entries** (down from 6): the 4 individual tools are
+  now a single `relay` tool with action subcommands (start, stop, status, models).
+  The `start` command remains for manual restarts.
 - The baked provider descriptor is regenerated from the live catalog: it now
   lists ten free models, adding `pulse-alpha-free` (text+image, 131072 output)
   and `crouton-alpha-free` (text+image, 270000 output), both 1048576 context.
@@ -23,7 +26,7 @@
 
 - The relay now binds at launch: the manifest declares startup = "on-startup"
   and the process autostarts the relay on the declared port, so the provider is
-  usable before the first tool call. `opencode__relay_start` stays idempotent
+  usable before the first tool call. `relay` with action=start stays idempotent
   and retries when the launch bind failed.
 - Adds the `start` command to the composer palette for a manual restart.
 - Requires the BOS change that warms on-startup runtimes at host load, in

@@ -1,0 +1,21 @@
+{
+  "description": "Read the newest redacted LLM-traffic records captured from the BSH host's observe hooks. Host-mediated traffic only: metadata and redacted previews, never request or response bodies or conversation text.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "description": "How many records to return, newest first (1-100, default 20).",
+        "minimum": 1,
+        "maximum": 100
+      },
+      "point": {
+        "type": "string",
+        "enum": ["http.exchange", "model.request", "model.response"],
+        "description": "Only records from this hook point."
+      }
+    },
+    "additionalProperties": false
+  },
+  "capabilities": []
+}

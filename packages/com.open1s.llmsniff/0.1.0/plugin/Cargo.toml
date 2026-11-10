@@ -1,0 +1,16 @@
+[package]
+name = "llmsniff-plugin"
+version = "0.1.0"
+edition = "2021"
+description = "Extism plugin for the LLM Sniffer BSH extension: parses observe-hook batches, redacts, correlates by request_id, stores bounded records."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+extism-pdk = "1.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Standalone crate: never join a parent workspace.
+[workspace]

@@ -29,9 +29,9 @@ class ProcessProtocolTests(unittest.TestCase):
         )
         requests = [
             {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "1.0", "token": "tok-1"}},
-            {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "opencode__relay_start", "arguments": {"port": port}}},
-            {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "status", "arguments": {"check": False}}},
-            {"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "relay_stop", "arguments": {}}},
+            {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "relay", "arguments": {"action": "start", "port": port}}},
+            {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "relay", "arguments": {"action": "status", "check": False}}},
+            {"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "relay", "arguments": {"action": "stop"}}},
             {"jsonrpc": "2.0", "id": 5, "method": "shutdown", "params": {}},
         ]
         payload = "".join(json.dumps(request) + "\n" for request in requests)
