@@ -304,6 +304,11 @@ def _build_output(root, findings):
     import os
 
     for current, directories, names in os.walk(root):
+        # Skip the devkit directory to avoid self-referential __pycache__ warnings
+        # when running lint on the DevKit package itself
+        if Path(current).name == "devkit":
+            directories[:] = []
+            continue
         for name in sorted(directories):
             if name in constants.BUILD_DIRECTORIES:
                 findings.append({

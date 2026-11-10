@@ -8,10 +8,10 @@ already validates and walks the reader through the build order one step at a
 time. The tools exist so every claim can be checked, not so the model can skip
 the design.
 
-    Extension DevKit 2.0.0
+    Extension DevKit 2.1.0
     id      com.open1s.extdev
     runtime process (python3, JSON-RPC 2.0 over stdio)
-    surface 14 tools, 9 commands, 4 skills, panel, prompt, scoped context,
+    surface 14 tools, 1 command, 5 skills, prompt, scoped context,
             workflow, configuration, 4 event subscriptions
 
 ## What changed in 2.1.0
@@ -70,7 +70,7 @@ package; blueprint writes docs/design.md.
 | process.execute | critical | the DevKit is a Python process runtime |
 | workspace.write | high | scaffold, blueprint, bump, package, migrate and market write files |
 | agent.workflows.provide | medium | the release workflow is a contributed tool |
-| agent.tools.register, agent.prompts.provide, agent.context.provide, agent.skills.provide, ui.panels, ui.commands, events.subscribe | low/medium | the contributed surfaces |
+| agent.tools.register, agent.prompts.provide, agent.context.provide, agent.skills.provide, ui.commands, events.subscribe | low/medium | the contributed surfaces |
 
 ## Design first
 
@@ -150,15 +150,11 @@ instead of passing it.
 | Command | What it does |
 |---|---|
 | /plan | interview, blueprint, confirm, scaffold, build one step at a time |
-| /domains | list the profiles and map a technology to the work |
 | /new | scaffold a minimal shell or a domain package |
 | /audit | check, then compare the package with its blueprint |
 | /publish | bump, gate, package, merge the market entry |
 | /reference | answer from explain instead of memory |
 | /grill | interrogate an ambiguous request before acting on it (the grill-me skill) |
-| /refresh | refresh the DevKit panel (also the panel's Refresh button) |
-| /selfcheck | run the DevKit self-check (also the panel's Run self-check button) |
-| /topics | list the reference topics (also the panel's Reference topics button) |
 
 The five skills:
 
@@ -175,13 +171,7 @@ The five skills:
   work.
 
 Commands insert a workflow template into the input; they do not execute it.
-The model decides what to do next. The three panel-action commands exist so
-the host can route the panel buttons: a panel action must resolve to a
-declared tool or command in the extension.
-
-> The 1.0.0 command names are unchanged. The new /plan, /domains, /refresh,
-> /selfcheck and /topics commands and the three new skills are additive; the
-> 1.0.0 tools keep their names.
+The model decides what to do next.
 
 ## Quick start
 
@@ -196,7 +186,7 @@ bsh ext install /Users/me/work/warehouse
 ~~~
 
 A domain scaffold contains the manifest, docs/design.md with the blueprint
-and checklist, the domain commands, prompt, scoped context, skill, panel,
+and checklist, the domain commands, prompt, scoped context, skill,
 the working describe/echo tools, a configuration schema, a LICENSE, a
 CHANGELOG and a dependency-free test suite:
 
@@ -218,7 +208,6 @@ The validator encodes the host's refusals, not a nicer version of them:
 | capabilities | vocabulary, duplicates, process.execute for a process runtime, hooks.observe for hooks |
 | contributions | unique ids across kinds, topic grammar, hook points, event and skill ceilings |
 | files | declared file exists, parses, and matches its kind's shape |
-| panels | UI schema 1.0, node types, required fields, action strings, node/depth limits |
 | packaging | no symbolic links, path safety |
 
 ~~~text
@@ -260,7 +249,7 @@ bsh ext mock . design '{"domain": "data"}'  # one tool against a mock host
 Layout:
 
 ~~~text
-server.py            JSON-RPC loop, panel actions, event journal
+server.py            JSON-RPC loop, event journal
 devkit/domains.py    the twelve domain profiles and the matcher
 devkit/design.py     blueprint, comparison, docs/design.md writer
 devkit/constants.py  the standard's vocabulary (one copy)
@@ -277,7 +266,7 @@ tests/               the suite, no host required
 ~~~
 
 The DevKit validates itself in CI: bsh ext validate, bsh ext test and the
-tests/ suite all pass, and the panel's self-check lints this package.
+tests/ suite all pass.
 
 ## Compatibility
 

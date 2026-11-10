@@ -34,12 +34,11 @@ required = [
     "agent.prompts.provide",
     "agent.skills.provide",
     "agent.workflows.provide",
-    "ui.panels",
     "ui.commands",
     "events.subscribe",
 ]
 
-# Usage entries: 1 tool + 1 command + 1 panel = 3
+# Usage entries: 1 tool + 5 commands = 6
 [[contribution]]
 kind = "tool"
 id = "design"
@@ -48,13 +47,31 @@ id = "design"
 
 [[contribution]]
 kind = "command"
-id = "publish"
+id = "selfcheck"
 
 [contribution.payload]
 
 [[contribution]]
-kind = "panel"
-id = "workshop"
+kind = "command"
+id = "domains"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "command"
+id = "topics"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "command"
+id = "refresh"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "command"
+id = "publish"
 
 [contribution.payload]
 
