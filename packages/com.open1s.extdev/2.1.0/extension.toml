@@ -101,6 +101,12 @@ id = "grill-me"
 [contribution.payload]
 
 [[contribution]]
+kind = "workflow"
+id = "release"
+
+[contribution.payload]
+
+[[contribution]]
 kind = "event.subscribe"
 id = "extension.loaded"
 

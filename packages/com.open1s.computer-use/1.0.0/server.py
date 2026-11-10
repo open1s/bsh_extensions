@@ -572,6 +572,42 @@ def dispatch(name, args):
     raise RuntimeError(f"unknown tool: {name}")
 
 
+TOOLS = [
+    {
+        "id": "computer",
+        "description": "A consolidated computer tool for macOS screen, pointer and keyboard operations.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["screen_size", "cursor_position", "screenshot", "mouse_move", "mouse_click", "mouse_drag", "scroll", "type_text", "key_press", "list_windows"], "description": "Action to perform."},
+                "path": {"type": "string", "description": "Optional absolute path for the PNG. Defaults to a temp file. Only for screenshot action."},
+                "pid": {"type": "integer", "description": "Process ID for targeting. Only for screenshot and list_windows actions."},
+                "window": {"type": "integer", "description": "Window ID for targeting. Only for screenshot action."},
+                "include_overlays": {"type": "boolean", "description": "Include overlay windows in list_windows results. Defaults to false."},
+                "limit": {"type": "integer", "description": "Maximum number of windows to return in list_windows. Defaults to 40."},
+                "x": {"type": "number", "description": "X coordinate in display points. Required for mouse_move, mouse_click, mouse_drag, scroll actions."},
+                "y": {"type": "number", "description": "Y coordinate in display points. Required for mouse_move, mouse_click, mouse_drag, scroll actions."},
+                "button": {"type": "string", "enum": ["left", "right", "middle"], "description": "Mouse button for click/drag actions. Defaults to 'left'."},
+                "clicks": {"type": "integer", "minimum": 1, "maximum": 3, "description": "Number of clicks for mouse_click action. Defaults to 1."},
+                "from_x": {"type": "number", "description": "Starting X coordinate for mouse_drag action."},
+                "from_y": {"type": "number", "description": "Starting Y coordinate for mouse_drag action."},
+                "to_x": {"type": "number", "description": "Ending X coordinate for mouse_drag action."},
+                "to_y": {"type": "number", "description": "Ending Y coordinate for mouse_drag action."},
+                "duration_ms": {"type": "integer", "minimum": 50, "maximum": 2000, "description": "Duration of drag in milliseconds. Defaults to 300."},
+                "delta_y": {"type": "integer", "description": "Vertical scroll delta. Positive scrolls down. Required for scroll action."},
+                "delta_x": {"type": "integer", "description": "Horizontal scroll delta. Defaults to 0."},
+                "text": {"type": "string", "maxLength": 4000, "description": "Unicode text to type. Required for type_text action."},
+                "key": {"type": "string", "description": "Key name or chord (e.g., 'return' or 'cmd+shift+t'). Required for key_press action."},
+                "modifiers": {"type": "array", "items": {"type": "string", "enum": ["cmd", "shift", "ctrl", "alt", "fn"]}, "description": "Modifier keys for key_press action."},
+                "target_pid": {"type": "integer", "description": "Target process ID for per-app targeting."}
+            },
+            "required": ["action"]
+        },
+        "capabilities": ["computer.use"]
+    }
+]
+
+
 def panel_document():
     screen = main_display()
     cursor = cursor_position()

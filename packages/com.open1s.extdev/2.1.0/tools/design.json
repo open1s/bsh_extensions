@@ -1,8 +1,28 @@
 {
-  "description": "Design a BSH extension for a specific domain before writing code. Returns the matched domain profile, the runtime it actually needs and why, the contribution plan, full tool descriptors with input schemas, the capability list with risk, scope and exact bsh ext grant commands, safety rules, build order, acceptance gates and open questions. Use it first for every new domain extension; follow it with scaffold.",
+  "description": "Design a BSH extension for a specific domain before writing code. Returns the matched domain profile, the runtime it actually needs and why, the contribution plan, full tool descriptors with input schemas, the capability list with risk, scope and exact bsh ext grant commands, safety rules, build order, acceptance gates and open questions. Use it first for every new domain extension; follow it with scaffold. Also supports modes: check, lint, smoke, publish, package, bump, hash, explain, migrate, events, validate.",
   "input_schema": {
     "type": "object",
     "properties": {
+      "mode": {
+        "type": "string",
+        "enum": [
+          "design",
+          "blueprint",
+          "scaffold",
+          "explain",
+          "validate",
+          "lint",
+          "check",
+          "smoke",
+          "publish",
+          "package",
+          "bump",
+          "hash",
+          "migrate",
+          "events"
+        ],
+        "description": "Operation mode: design (default), check, lint, smoke, publish, package, bump, hash, explain, migrate, events, scaffold, blueprint, validate."
+      },
       "domain": {
         "type": "string",
         "description": "A domain profile key (knowledge, devops, data, web, documents, media, messaging, security, research, model, system, generic) or a sentence that names the domain."
@@ -25,12 +45,22 @@
       },
       "path": {
         "type": "string",
-        "description": "Absolute path to an existing package to compare with the blueprint."
+        "description": "Absolute path to an existing package to compare with the blueprint, or to validate/lint/publish."
+      },
+      "smoke": {
+        "type": "boolean",
+        "description": "Run a smoke test of every declared tool (for check mode)."
+      },
+      "tool": {
+        "type": "string",
+        "description": "Name of a specific tool to smoke test (for check mode)."
+      },
+      "arguments": {
+        "type": "object",
+        "description": "Arguments for the tool to smoke test (for check mode)."
       }
     },
-    "required": [
-      "domain"
-    ],
+    "required": [],
     "additionalProperties": false
   },
   "capabilities": [

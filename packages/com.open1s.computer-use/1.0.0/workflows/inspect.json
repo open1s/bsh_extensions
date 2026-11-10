@@ -8,8 +8,8 @@
     "additionalProperties": false
   },
   "steps": [
-    { "name": "display", "tool": "screen_size", "arguments": {} },
-    { "name": "pointer", "tool": "cursor_position", "arguments": {} },
-    { "name": "capture", "tool": "screenshot", "arguments": { "path": "{{input.path}}" } }
+    { "name": "display", "tool": "computer", "arguments": { "action": "screen_size" } },
+    { "name": "pointer", "tool": "computer", "arguments": { "action": "cursor_position" } },
+    { "name": "capture", "tool": "computer", "arguments": { "action": "screenshot", "path": "{{input.path}}" } }
   ]
 }

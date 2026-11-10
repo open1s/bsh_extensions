@@ -1,5 +1,8 @@
 {
   "name": "Desktop",
   "kind": "custom",
-  "action": "screen_size"
+  "action": "computer",
+  "parameters": {
+    "action": "screen_size"
+  }
 }

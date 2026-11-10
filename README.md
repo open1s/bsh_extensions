@@ -94,11 +94,10 @@ and acceptance gates. Twelve domain profiles cover knowledge, devops, data,
 web, documents, media, messaging, security, research, model, system and the
 uncategorized case. The scaffold then writes a package that already validates
 plus docs/design.md, declares only the tools whose files exist and leaves the
-rest in an implementation checklist. Fourteen tools compile a manifest the way
-the host does, review it with stable rules, run every declared tool locally,
-build reproducible archives, edit this index and migrate a 1.x manifest. Nine
-commands, four skills, a self-checking panel, a scoped context, a prompt, a
-release workflow and a configuration schema come with it.
+rest in an implementation checklist. The design tool (with modes: check, lint,
+smoke, publish, package, bump, hash, explain, migrate, validate, scaffold,
+blueprint) replaces 14 tools + 9 commands with a unified interface. One command
+(publish) and one workflow (release) complete the 3 usage entries.
 
 ~~~text
 bsh ext market install com.open1s.extdev

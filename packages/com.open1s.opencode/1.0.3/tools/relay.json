@@ -1,0 +1,22 @@
+{
+  "description": "Control the OpenCode Zen relay: start, stop, check status, or list available models. The relay forwards requests from BSH's OpenCode Zen provider to the free Zen catalog.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["start", "stop", "status", "models"],
+        "description": "Action to perform on the relay."
+      },
+      "port": {
+        "type": "integer",
+        "description": "Loopback port for the relay. Defaults to 18765, which is the port the contributed provider points at."
+      },
+      "check": {
+        "type": "boolean",
+        "description": "Fetch the live Zen catalog to prove upstream reachability. Defaults to true."
+      }
+    },
+    "required": ["action"]
+  }
+}

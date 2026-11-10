@@ -16,24 +16,26 @@
   "steps": [
     {
       "name": "validate",
-      "tool": "validate",
+      "tool": "design",
       "arguments": {
-        "path": "{{input.path}}"
+        "path": "{{input.path}}",
+        "mode": "check"
       }
     },
     {
       "name": "lint",
-      "tool": "lint",
+      "tool": "design",
       "arguments": {
-        "path": "{{input.path}}"
+        "path": "{{input.path}}",
+        "mode": "lint"
       }
     },
     {
       "name": "entry",
-      "tool": "market",
+      "tool": "design",
       "arguments": {
         "path": "{{input.path}}",
-        "action": "entry"
+        "mode": "publish"
       }
     }
   ]
