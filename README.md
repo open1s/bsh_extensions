@@ -42,6 +42,26 @@ bsh ext market install com.open1s.computer-use
 Full details are in
 [`packages/com.open1s.computer-use/1.0.0/README.md`](packages/com.open1s.computer-use/1.0.0/README.md).
 
+### LLM Sniffer
+
+Capture and parse the LLM API traffic the BSH host mediates through the
+`http.exchange` and `model.request`/`model.response` hooks. Credentials are
+redacted before storage. A single `captures` tool queries the stored traffic,
+a `/start` command toggles capture, and an overview panel shows active captures.
+
+~~~text
+bsh ext grant com.open1s.llmsniff agent.tools.register
+bsh ext grant com.open1s.llmsniff ui.commands
+bsh ext grant com.open1s.llmsniff agent.prompts.provide
+bsh ext grant com.open1s.llmsniff agent.context.provide
+bsh ext grant com.open1s.llmsniff agent.skills.provide
+bsh ext grant com.open1s.llmsniff ui.panels
+bsh ext market install com.open1s.llmsniff
+~~~
+
+Full details are in
+[`packages/com.open1s.llmsniff/0.1.0/README.md`](packages/com.open1s.llmsniff/0.1.0/README.md).
+
 ### OpenCode Zen
 
 No account and no API key: the package contributes the **OpenCode Zen** model
@@ -133,5 +153,6 @@ Do not commit `__pycache__`, build output, or installed package data.
 |---|---|---|---|
 | `com.open1s.computer-use` | Computer Use | 1.0.0 | Real macOS screen, pointer and keyboard tools, panel, workflow and hooks built as a BSH process extension |
 | `com.open1s.extdev` | Extension DevKit | 2.1.0 | Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain, and grill-me interrogates an ambiguous brief before code is written. |
+| `com.open1s.llmsniff` | LLM Sniffer | 0.1.0 | Capture and parse the LLM API traffic the BSH host mediates, through the http.exchange and model observe hooks, with credentials redacted before storage. |
 | `com.open1s.opencode` | OpenCode Zen | 1.0.3 | Free OpenCode Zen models for BSH through a local relay that speaks the anonymous lane wire shape |
 <!-- market-table:end -->
