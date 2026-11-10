@@ -5,7 +5,7 @@
       "id": "com.open1s.computer-use",
       "name": "Computer Use",
       "version": "1.0.0",
-      "description": "Real macOS screen, pointer and keyboard tools, panel, workflow and hooks built as a BSH process extension",
+      "description": "A real, opt-in screen, pointer and keyboard extension for macOS",
       "path": "packages/com.open1s.computer-use/1.0.0",
       "hash": "880e629629400dc1789eeb7b75bff34d7aac11a68bd057a8be5137ff5882cde6"
     },
@@ -15,7 +15,7 @@
       "version": "2.1.0",
       "description": "Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain, and grill-me interrogates an ambiguous brief before code is written.",
       "path": "packages/com.open1s.extdev/2.1.0",
-      "hash": "3516d36487b13e561849fcf5d9353db2b065732d1b3d5ddf0f0b4a42eea241b1"
+      "hash": "2a283318a791a85622a479f9f745a76434648cece5beed9edd4ce658f0f25303"
     },
     {
       "id": "com.open1s.llmsniff",
@@ -31,7 +31,7 @@
       "version": "1.0.3",
       "description": "Free OpenCode Zen models for BSH through a local relay that speaks the anonymous lane wire shape",
       "path": "packages/com.open1s.opencode/1.0.3",
-      "hash": "6b323281193c9e132dc3871d93c4a37a3e4349a2ab886b21ea61a58a4d08cca2"
+      "hash": "e36bf96ac796e6f3cc41e4b164966708f9a35735bbba53814a7867618250dd64"
     }
   ]
 }
