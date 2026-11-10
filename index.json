@@ -7,7 +7,7 @@
       "version": "1.0.0",
       "description": "Real macOS screen, pointer and keyboard tools, panel, workflow and hooks built as a BSH process extension",
       "path": "packages/com.open1s.computer-use/1.0.0",
-      "hash": "f35819c76c1696b059a75cda538263995c433323de9e8c1d1ea1aacb455ed488"
+      "hash": "880e629629400dc1789eeb7b75bff34d7aac11a68bd057a8be5137ff5882cde6"
     },
     {
       "id": "com.open1s.extdev",
@@ -15,7 +15,7 @@
       "version": "2.1.0",
       "description": "Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain, and grill-me interrogates an ambiguous brief before code is written.",
       "path": "packages/com.open1s.extdev/2.1.0",
-      "hash": "c3dd05b20ec1cd29fe4da962cd82ff10d1adf77b3bb8365befbbe14b868069dc"
+      "hash": "3516d36487b13e561849fcf5d9353db2b065732d1b3d5ddf0f0b4a42eea241b1"
     },
     {
       "id": "com.open1s.llmsniff",
@@ -23,7 +23,7 @@
       "version": "0.1.0",
       "description": "Capture and parse the LLM API traffic the BSH host mediates, through the http.exchange and model observe hooks, with credentials redacted before storage.",
       "path": "packages/com.open1s.llmsniff/0.1.0",
-      "hash": "70858ef959bc89f59a803a4d1b2e06b90be6d6dc850de790bc1dff0058dc37b2"
+      "hash": "a316f8295dd3a8f8a3bde5d213ad58b01ed98ce0534a7e4288589dcdb79abd96"
     },
     {
       "id": "com.open1s.opencode",
@@ -31,7 +31,7 @@
       "version": "1.0.3",
       "description": "Free OpenCode Zen models for BSH through a local relay that speaks the anonymous lane wire shape",
       "path": "packages/com.open1s.opencode/1.0.3",
-      "hash": "b3373248938dc0bd9a6e0c28856019bd80371f8efb4220b97ff52b7f24ac4477"
+      "hash": "6b323281193c9e132dc3871d93c4a37a3e4349a2ab886b21ea61a58a4d08cca2"
     }
   ]
 }
