@@ -241,6 +241,92 @@ class MarketTest(unittest.TestCase):
             self.assertTrue(any("hash" in problem["problem"] for problem in problems),
                             problems)
 
+
+    @staticmethod
+    def _git(repo, *arguments):
+        return subprocess.run(
+            ["git", "-C", str(repo), *arguments],
+            check=True, capture_output=True, text=True,
+        )
+
+    def _repo_with_package(self, root, extension_id):
+        """A committed market checkout holding one scaffolded package."""
+        self._git(root, "init", "-q", "-b", "main")
+        self._git(root, "config", "user.email", "dev@example.test")
+        self._git(root, "config", "user.name", "Dev")
+        package_root = root / "packages" / extension_id / "1.0.0"
+        scaffold({"path": str(package_root), "id": extension_id})
+        write(root, ".gitignore", "__pycache__/\n*.pyc\n")
+        write(root, "index.json", json.dumps({"schema_version": 1, "extensions": []}))
+        self._git(root, "add", "-A")
+        self._git(root, "commit", "-q", "-m", "the package")
+        return package_root
+
+    @unittest.skipUnless(shutil.which("git"), "git is not installed")
+    def test_the_index_hash_is_the_commit_a_clone_carries(self):
+        # The reported failure: a test run left __pycache__ in the package, the
+        # index was hashed from the working tree, and every install was denied
+        # because a clone never has the bytecode.
+        with Scratch() as repo, Scratch() as elsewhere:
+            package_root = self._repo_with_package(repo, "com.example.commit")
+            write(package_root, "__pycache__/devkit.cpython-313.pyc", "bytecode")
+            self.assertNotEqual(util.package_hash(package_root),
+                                util.head_package_hash(package_root),
+                                "the premise: disk and HEAD must differ here")
+            entry = market({"path": str(package_root), "action": "entry"}, {})
+            self.assertEqual(entry["hash_source"], "HEAD")
+            self.assertEqual(entry["hash"], util.head_package_hash(package_root))
+            subprocess.run(
+                ["git", "clone", "-q", str(repo), str(elsewhere / "clone")],
+                check=True, capture_output=True,
+            )
+            checkout = elsewhere / "clone" / "packages" / "com.example.commit" / "1.0.0"
+            self.assertEqual(
+                util.package_hash(checkout), entry["hash"],
+                "the host hashes the clone, so the index must carry that digest",
+            )
+
+    @unittest.skipUnless(shutil.which("git"), "git is not installed")
+    def test_verify_rejects_an_index_hashed_from_the_working_tree(self):
+        with Scratch() as repo:
+            package_root = self._repo_with_package(repo, "com.example.stale")
+            write(package_root, "__pycache__/devkit.cpython-313.pyc", "bytecode")
+            entry = make_entry(package_root, repo / "index.json")
+            # Exactly what the old tool wrote: the hash of the files on disk.
+            entry["hash"] = util.package_hash(package_root)
+            write(repo, "index.json",
+                  json.dumps({"schema_version": 1, "extensions": [entry]}))
+            report = verify(repo)
+            self.assertFalse(report["ok"], "a disk hash must not pass verification")
+            self.assertTrue(
+                any("hashes to" in problem["problem"] for problem in report["problems"]),
+                report["problems"],
+            )
+            entry["hash"] = util.head_package_hash(package_root)
+            write(repo, "index.json",
+                  json.dumps({"schema_version": 1, "extensions": [entry]}))
+            self.assertTrue(verify(repo)["ok"], verify(repo)["problems"])
+
+    @unittest.skipUnless(shutil.which("git"), "git is not installed")
+    def test_merge_refuses_a_package_with_uncommitted_changes(self):
+        with Scratch() as repo:
+            package_root = self._repo_with_package(repo, "com.example.dirty")
+            readme = package_root / "README.md"
+            readme.write_text(readme.read_text() + "\nmore\n", encoding="utf-8")
+            with self.assertRaises(util.DevkitError) as raised:
+                market({"path": str(package_root), "action": "merge"}, {})
+            self.assertIn("uncommitted", str(raised.exception))
+
+    def test_a_package_outside_git_is_hashed_from_disk(self):
+        with Scratch() as repo:
+            package_root = repo / "packages" / "com.example.plain" / "1.0.0"
+            scaffold({"path": str(package_root), "id": "com.example.plain"})
+            write(repo, "index.json", json.dumps({"schema_version": 1, "extensions": []}))
+            entry = market({"path": str(package_root), "action": "entry"}, {})
+            self.assertEqual(entry["hash_source"], "working tree")
+            self.assertEqual(entry["hash"], util.package_hash(package_root))
+            self.assertTrue(entry["warnings"], "the result must say what it hashed")
+
     def test_verify_reports_an_unindexed_package(self):
         with Scratch() as repo:
             package_root = repo / "packages" / "com.example.missing" / "1.0.0"

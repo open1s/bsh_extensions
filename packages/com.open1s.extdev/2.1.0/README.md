@@ -122,8 +122,8 @@ verification.
 | check | path, smoke | the release gate: validate + lint + hash + optional smoke |
 | smoke | path, tool, arguments | run the declared tools without the host |
 | explain | topic | the standard and the domain catalogue as markdown |
-| hash | path | the canonical package hash, file count and bytes |
-| market | path, action, repo | entry, merge, verify, readme, list |
+| hash | path | the canonical package hash HEAD carries, its source and any uncommitted files |
+| market | path, action, repo | entry, merge, verify, readme, list (hashes the commit, refuses a dirty package) |
 | bump | path, release | semver bump plus a dated changelog entry |
 | package | path, out | deterministic .tar.gz with both digests |
 | migrate | path, write | 1.x manifest to manifest 2.0 |
@@ -133,6 +133,17 @@ Every path argument is absolute. The process runs with its working directory
 set to its own installed package, so a relative path would name the wrong
 tree; the host also resolves the call scope against the workspace, which only
 matches the grant when the argument is the absolute path.
+
+### The market hash is the commit, not the files on disk
+
+The host installs a market entry by cloning the provider and hashing that
+checkout, and a clone carries committed files only. `market` therefore hashes
+`HEAD` and refuses a package with uncommitted changes: hashing the working
+tree would fold in ignored files (a `__pycache__` from a test run is the
+usual one) and declare a digest no clone can reproduce, which the host refuses
+with a `package.integrity` denial. Commit the package, then run
+`market action=merge`; `verify` reads the same commit and names a dirty tree
+instead of passing it.
 
 ## Commands and skills
 

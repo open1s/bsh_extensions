@@ -16,6 +16,9 @@ from .util import (
     check_relative_path,
     dump_json,
     fail,
+    git_worktree,
+    head_package_changes,
+    head_package_hash,
     package_hash,
     read_json,
     read_text,
@@ -60,6 +63,38 @@ def manifest_of(root: Path) -> dict:
         fail("%s does not parse: %s" % (path, error))
 
 
+def market_hash(root: Path) -> dict:
+    """The hash a market entry must carry, and where it came from.
+
+    A Git market ships commits: the host clones the provider and hashes that
+    checkout. The working tree also carries ignored files - a __pycache__ left
+    by a test run is the usual one - that no clone contains, so hashing the
+    disk here would declare bytes the host can never reproduce and the install
+    would be refused with a package.integrity denial. Read HEAD instead; only
+    a package outside a work tree falls back to the files on disk.
+    """
+    committed = head_package_hash(root)
+    if committed is None:
+        return {
+            "hash": package_hash(root),
+            "source": "working tree",
+            "changes": [],
+            "warnings": [
+                "%s is not inside a Git work tree, so this hash describes the "
+                "files on disk; a clone that skips an ignored file will not "
+                "reproduce it" % root
+            ],
+        }
+    changes = head_package_changes(root)
+    warnings = []
+    if changes:
+        warnings.append(
+            "the working tree has uncommitted changes (%s); the hash describes "
+            "HEAD, which is what a clone receives" % ", ".join(changes)
+        )
+    return {"hash": committed, "source": "HEAD", "changes": changes, "warnings": warnings}
+
+
 def make_entry(root: Path, index_path: Path) -> dict:
     """Build the index entry that names this exact package directory."""
     manifest = manifest_of(root)
@@ -74,7 +109,7 @@ def make_entry(root: Path, index_path: Path) -> dict:
         "version": version,
         "description": identity.get("description") or "",
         "path": _index_relative_path(root, index_path),
-        "hash": package_hash(root),
+        "hash": market_hash(root)["hash"],
     }
     reason = check_relative_path(entry["path"])
     if reason:
@@ -121,7 +156,7 @@ def conventional_entry(root: Path) -> dict:
         "version": version,
         "description": identity.get("description") or "",
         "path": "packages/%s/%s" % (raw_id, version),
-        "hash": package_hash(root),
+        "hash": market_hash(root)["hash"],
     }
 
 
@@ -194,14 +229,27 @@ def market(arguments: dict, config: dict) -> dict:
     if action == "entry":
         entry = (make_entry(root, repo / constants.MARKET_INDEX) if repo
                  else conventional_entry(root))
+        hashed = market_hash(root)
         return {
             "entry": entry,
             "hash": entry["hash"],
+            "hash_source": hashed["source"],
+            "warnings": hashed["warnings"],
             "json": json.dumps(entry, indent=2, ensure_ascii=False),
             "command": "bsh ext market install %s" % entry["id"],
         }
 
     if action == "merge":
+        hashed = market_hash(root)
+        if hashed["changes"]:
+            # The index describes a commit; a clone can only install that. A
+            # dirty package would publish a hash that the next push disagrees
+            # with, which is the exact failure this tool exists to prevent.
+            fail(
+                "the package has uncommitted changes (%s); commit them first, "
+                "then merge: the index hashes HEAD, because that is what a "
+                "clone installs" % ", ".join(hashed["changes"])
+            )
         document = read_index(repo)
         entry = make_entry(root, repo / constants.MARKET_INDEX)
         replaced = False
@@ -217,6 +265,8 @@ def market(arguments: dict, config: dict) -> dict:
             "index": str(path),
             "action": "updated" if replaced else "added",
             "entry": entry,
+            "hash_source": hashed["source"],
+            "warnings": hashed["warnings"],
             "entries": len(document["extensions"]),
         }
 
@@ -264,12 +314,20 @@ def verify(repo: Path) -> dict:
             })
         declared = entry.get("hash")
         if declared:
-            actual = package_hash(path)
-            if actual != declared:
+            hashed = market_hash(path)
+            if hashed["hash"] != declared:
                 problems.append({
                     "id": entry["id"], "version": entry["version"],
-                    "problem": "the hash is %s but the bytes hash to %s"
-                               % (declared, actual),
+                    "problem": "the index hash is %s but %s hashes to %s"
+                               % (declared, hashed["source"], hashed["hash"]),
+                })
+            if hashed["changes"]:
+                problems.append({
+                    "id": entry["id"], "version": entry["version"],
+                    "problem": "the working tree has uncommitted changes (%s); "
+                               "the index describes HEAD, so the copy on disk is "
+                               "not what a clone installs"
+                               % ", ".join(hashed["changes"]),
                 })
     indexed_ids = {entry["id"] for entry in document["extensions"]}
     packages = repo / "packages"
@@ -293,6 +351,7 @@ def verify(repo: Path) -> dict:
                     })
     return {
         "ok": not problems,
+        "hash_source": "HEAD" if git_worktree(repo) is not None else "working tree",
         "index": str(repo / constants.MARKET_INDEX),
         "entries": len(document["extensions"]),
         "problems": problems,

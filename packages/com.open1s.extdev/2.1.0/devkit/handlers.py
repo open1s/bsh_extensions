@@ -13,12 +13,13 @@ import sys
 from . import reference
 from .design import design
 from .lint import lint
-from .market import market
+from .market import market, market_hash
 from .release import bump, migrate, package
 from .scaffold import scaffold
 from .smoke import smoke
 from .util import (
     fail,
+    head_package_files,
     package_hash,
     read_bytes,
     resolve_root,
@@ -40,24 +41,6 @@ DEFAULT_CONFIG = {
 TOOL_NAMES = (
     "design",
 )
-
-# Internal tools (for skill workflows, not declared in manifest)
-_INTERNAL_TOOLS = {
-    "scaffold": _handle_scaffold,
-    "validate": _handle_validate,
-    "lint": _handle_lint,
-    "check": _handle_check,
-    "smoke": _handle_smoke,
-    "explain": _handle_explain,
-    "hash": _handle_hash,
-    "market": _handle_market,
-    "bump": _handle_bump,
-    "package": _handle_package,
-    "migrate": _handle_migrate,
-    "events": _handle_events,
-    "blueprint": _handle_blueprint,
-}
-
 
 def merge_config(raw) -> dict:
     """Merge the host-supplied configuration over the defaults."""
@@ -162,14 +145,24 @@ def _handle_explain(arguments, config, state):
 
 
 def _handle_hash(arguments, config, state):
-    """Print the canonical package hash the market index carries."""
+    """Print the canonical package hash the market index carries.
+
+    The market ships commits, so the index hash is HEAD's; a package outside a
+    Git work tree has only the files on disk, and the result says which one it
+    read. `warnings` names uncommitted files, because they are not in the hash.
+    """
     root = resolve_root(arguments.get("path"))
-    files = walk_files(root)
+    hashed = market_hash(root)
+    files = head_package_files(root)
+    if files is None:
+        files = walk_files(root)
     return {
         "path": str(root),
-        "hash": package_hash(root),
+        "hash": hashed["hash"],
+        "hash_source": hashed["source"],
+        "uncommitted": hashed["changes"],
+        "warnings": hashed["warnings"],
         "files": len(files),
-        "bytes": sum(len(read_bytes(root / relative)) for relative in files),
     }
 
 
@@ -285,3 +278,21 @@ def _handle_design(arguments, config, state):
     
     # Default: design mode
     return _handle_design(arguments, config, state)
+# Internal tools (for skill workflows, not declared in manifest). Defined after
+# the handlers so the module imports: a registry above the functions it names
+# raises NameError on the first import and the whole extension fails to start.
+_INTERNAL_TOOLS = {
+    "scaffold": _handle_scaffold,
+    "validate": _handle_validate,
+    "lint": _handle_lint,
+    "check": _handle_check,
+    "smoke": _handle_smoke,
+    "explain": _handle_explain,
+    "hash": _handle_hash,
+    "market": _handle_market,
+    "bump": _handle_bump,
+    "package": _handle_package,
+    "migrate": _handle_migrate,
+    "events": _handle_events,
+    "blueprint": _handle_blueprint,
+}

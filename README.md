@@ -137,11 +137,16 @@ hash itself.
 ## Publishing a package
 
 1. Add `packages/<id>/<version>/` with a valid manifest 2.0 `extension.toml`.
-2. Append the entry to `index.json` and keep the array sorted by id.
-3. Run `bsh ext validate packages/<id>/<version>` and `bsh ext test
+2. Commit the package first. The index hash is the commit's, because the host
+   installs from a clone and a clone carries committed files only: the DevKit
+   hashes `HEAD` and refuses a dirty package, so an index built before the
+   commit would declare a digest no clone can reproduce.
+3. Append the entry to `index.json` and keep the array sorted by id
+   (`market action=merge` does this).
+4. Run `bsh ext validate packages/<id>/<version>` and `bsh ext test
    packages/<id>/<version>`; the DevKit package adds a review, a smoke run and
    a canonical hash check in one call.
-4. Commit both the package and the index entry in one change.
+5. Commit the index entry.
 
 Do not commit `__pycache__`, build output, or installed package data.
 

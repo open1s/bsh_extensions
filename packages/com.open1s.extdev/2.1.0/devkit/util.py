@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -220,6 +221,223 @@ def package_hash(root: Path) -> str:
         digest.update(len(data).to_bytes(8, "little"))
         digest.update(hashlib.sha256(data).digest())
     return digest.hexdigest()
+
+
+# --- the committed tree -----------------------------------------------------
+#
+# The market ships commits, not working trees: the host clones the provider and
+# hashes that checkout, and a clone never carries an ignored file. Hashing the
+# working tree instead is how an index ends up declaring bytes no clone can
+# have - a __pycache__ left by a test run is the usual one - and the host then
+# refuses the install with a package.integrity denial. These helpers read HEAD,
+# so the index describes exactly what a clone yields.
+
+GIT_TIMEOUT_SECONDS = 120
+
+
+def _git(root: Path, *arguments: str, payload: "bytes | None" = None):
+    """Run git in `root`; None when git itself cannot run."""
+    try:
+        return subprocess.run(
+            ["git", "-C", str(root), *arguments],
+            input=payload,
+            capture_output=True,
+            timeout=GIT_TIMEOUT_SECONDS,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def git_worktree(root: Path) -> "Path | None":
+    """The Git work tree `root` belongs to, or None when it is not in one."""
+    result = _git(root, "rev-parse", "--show-toplevel")
+    if result is None or result.returncode != 0:
+        return None
+    top = result.stdout.decode("utf-8", "replace").strip()
+    if not top:
+        return None
+    try:
+        return Path(top).resolve()
+    except OSError:  # pragma: no cover - a path that cannot be resolved
+        return Path(top)
+
+
+def _repo_relative(root: Path, repo: Path) -> "str | None":
+    try:
+        return root.resolve().relative_to(repo).as_posix()
+    except ValueError:
+        return None
+
+
+def _git_failure(action: str, result) -> "None":
+    stderr = result.stderr.decode("utf-8", "replace").strip()
+    fail("git %s failed: %s" % (action, stderr or "no output"))
+
+
+def _walk_order(files: "list[str]") -> "list[str]":
+    """Order package-relative paths the way the host's WalkDir visits them."""
+    tree: dict = {}
+    for relative in files:
+        node = tree
+        for part in relative.split("/"):
+            node = node.setdefault(part, {})
+    ordered: "list[str]" = []
+
+    def visit(node: dict, prefix: str) -> None:
+        for name in sorted(node):
+            child = node[name]
+            path = prefix + name
+            if child:
+                visit(child, path + "/")
+            else:
+                ordered.append(path)
+
+    visit(tree, "")
+    return ordered
+
+
+def _head_entries(root: Path) -> "list[tuple[str, str]] | None":
+    """HEAD's (package-relative path, blob id) pairs, in the host's walk order.
+
+    None means `root` is not inside a Git work tree. Inside one, a package Git
+    does not carry is refused rather than hashed from disk: a clone could never
+    install it.
+    """
+    repo = git_worktree(root)
+    if repo is None:
+        return None
+    relative = _repo_relative(root, repo)
+    if relative is None:
+        return None
+    result = _git(repo, "ls-tree", "-r", "-z", "--full-tree", "HEAD", "--", relative or ".")
+    if result is None:
+        return None
+    if result.returncode != 0:
+        _git_failure("ls-tree", result)
+    prefix = relative + "/" if relative else ""
+    entries: "list[tuple[str, str]]" = []
+    for record in result.stdout.split(b"\x00"):
+        if not record:
+            continue
+        meta, raw_path = record.split(b"\t", 1)
+        mode, kind, sha = meta.split(b" ")
+        path = raw_path.decode("utf-8", "surrogateescape")
+        if prefix and not path.startswith(prefix):
+            continue
+        inner = path[len(prefix):] if prefix else path
+        if mode == b"120000":
+            fail(
+                "package contains a symbolic link at %s; packages must be "
+                "self-contained" % inner
+            )
+        if kind != b"blob":
+            fail(
+                "HEAD carries %s at %s, which is not a file; a package must be "
+                "self-contained" % (kind.decode("ascii", "replace"), inner)
+            )
+        if ignored(inner) or inner == constants.SIGNATURE_FILE:
+            continue
+        entries.append((inner, sha.decode("ascii")))
+    if not entries:
+        fail(
+            "the package has no committed files in %s; commit %s before "
+            "building a market index" % (repo, root)
+        )
+    order = {
+        path: position
+        for position, path in enumerate(_walk_order([path for path, _ in entries]))
+    }
+    entries.sort(key=lambda entry: order[entry[0]])
+    return entries
+
+
+def _read_blobs(repo: Path, shas: "list[str]") -> "list[bytes]":
+    """Read committed blobs in one `git cat-file --batch` call."""
+    if not shas:
+        return []
+    result = _git(repo, "cat-file", "--batch", payload=("\n".join(shas) + "\n").encode("ascii"))
+    if result is None:
+        fail("git cat-file could not run; install Git or run outside a work tree")
+    if result.returncode != 0:
+        _git_failure("cat-file", result)
+    output = result.stdout
+    blobs: "list[bytes]" = []
+    position = 0
+    for sha in shas:
+        newline = output.find(b"\n", position)
+        if newline < 0:
+            fail("git cat-file returned a short object stream")
+        header = output[position:newline].decode("ascii", "replace").split(" ")
+        if len(header) != 3 or header[1] != "blob":
+            fail("git cat-file could not read %s: %s" % (sha, " ".join(header)))
+        size = int(header[2])
+        start = newline + 1
+        blobs.append(output[start:start + size])
+        position = start + size + 1
+    return blobs
+
+
+def head_package_files(root: Path) -> "list[str] | None":
+    """The package's committed files at HEAD, in the host's walk order."""
+    entries = _head_entries(root)
+    if entries is None:
+        return None
+    return [relative for relative, _sha in entries]
+
+
+def head_package_hash(root: Path) -> "str | None":
+    """The canonical hash of the package as HEAD commits it.
+
+    None means `root` is not inside a Git work tree, so there is no commit to
+    describe. The digest is the same recipe as [`package_hash`], over the
+    committed blobs instead of the files on disk.
+    """
+    entries = _head_entries(root)
+    if entries is None:
+        return None
+    repo = git_worktree(root)
+    if repo is None:  # pragma: no cover - _head_entries already resolved one
+        return None
+    blobs = _read_blobs(repo, [sha for _relative, sha in entries])
+    digest = hashlib.sha256()
+    for (relative, _sha), data in zip(entries, blobs):
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\x00")
+        digest.update(len(data).to_bytes(8, "little"))
+        digest.update(hashlib.sha256(data).digest())
+    return digest.hexdigest()
+
+
+def head_package_changes(root: Path) -> "list[str]":
+    """Paths under `root` that differ from HEAD, per `git status`.
+
+    Ignored files are not reported: a clone never carries them, so they do not
+    change what the market installs. Everything else here means the working
+    copy and the commit the market ships disagree.
+    """
+    repo = git_worktree(root)
+    if repo is None:
+        return []
+    relative = _repo_relative(root, repo)
+    if relative is None:
+        return []
+    result = _git(repo, "status", "--porcelain", "-z", "--", relative or ".")
+    if result is None or result.returncode != 0:
+        return []
+    records = [record for record in result.stdout.split(b"\x00") if record]
+    changes: "list[str]" = []
+    index = 0
+    while index < len(records):
+        record = records[index]
+        index += 1
+        status = record[:2]
+        if len(record) <= 3:
+            continue
+        changes.append(record[3:].decode("utf-8", "surrogateescape"))
+        if status[:1] in (b"R", b"C") and index < len(records):
+            changes.append(records[index][3:].decode("utf-8", "surrogateescape"))
+            index += 1
+    return changes
 
 
 # --- identifiers -----------------------------------------------------------

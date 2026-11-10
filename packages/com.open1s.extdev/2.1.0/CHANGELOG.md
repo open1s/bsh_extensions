@@ -2,6 +2,16 @@
 
 ## 2.1.0 - 2026-11-04
 
+- `market` hashes the committed tree (`HEAD`), not the working tree: the
+  host clones the provider, so an index built from the files on disk folded in
+  ignored build output (a `__pycache__` left by a test run) and every install
+  was refused with `package.integrity`. `merge` now refuses a package with
+  uncommitted changes, and `verify` compares against the commit and names a
+  dirty tree instead of passing it.
+- `devkit.handlers` imports again: its internal-tool registry was defined
+  above the handlers it names, so the process runtime raised `NameError` on
+  the first import and the extension never started.
+
 - Add the grill-me skill and the /grill command: a simple reader
   interrogation for ambiguous, underspecified or high-stakes requests. The
   method is inspect first, then one self-contained question at a time (fork,
