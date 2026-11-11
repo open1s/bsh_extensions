@@ -3,12 +3,12 @@ schema_version = "2.0"
 [extension]
 id = "com.open1s.extdev"
 name = "Extension DevKit"
-version = "2.1.0"
+version = "2.2.0"
 description = "Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain, and grill-me interrogates an ambiguous brief before code is written."
 authors = ["open1s"]
 license = "MIT"
 repository = "https://github.com/open1s/bsh_extensions"
-homepage = "https://github.com/open1s/bsh_extensions/tree/main/packages/com.open1s.extdev/2.1.0"
+homepage = "https://github.com/open1s/bsh_extensions/tree/main/packages/com.open1s.extdev/2.2.0"
 
 [compatibility]
 host = ">=3.0.2, <5.0.0"

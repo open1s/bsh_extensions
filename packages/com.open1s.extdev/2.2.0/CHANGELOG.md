@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.2.0 - 2026-11-11
+
+- Reference follows the current extension contract: eight observe points
+  (`turn.start`, `turn.end` and `skill.load` are new), hook delivery for extism
+  (`bsh_hook`) and wasm components (`on-event`, `event-type = "hook"`), the
+  `{agent, data}` envelope, the MCP gateway envelope and the network scope.
+- Panels: collapsible `section` nodes, semantic `tone` roles, weighted table
+  columns, `refresh_ms`, per-panel `theme`/`theme_dark`, real input action
+  payloads, declared-view vs live-card semantics, and the current limits
+  (1000 nodes, 16 KiB text, 500 rows, 32 columns, 2048-char cells, 16 tabs,
+  1 MiB serialized).
+- Runtime: WASI preview 2 clock/random and inherited stdio for wasm
+  components, with no stdin, filesystem, environment or socket permission.
+- Validation: the new panel fields and theme ids are checked, and a
+  `wasm-component` package may declare hooks.
+- The scoped context now points at the live `panels` and `hooks` topics.
+
 ## 2.1.0 - 2026-11-04
 
 - `market` hashes the committed tree (`HEAD`), not the working tree: the

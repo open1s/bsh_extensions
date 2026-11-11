@@ -201,6 +201,11 @@ extension data root and /tmp.
 All require `runtime.config.entry`. MCP speaks the MCP stdio protocol; Extism
 loads a PDK plugin; the wasm component implements the WIT contract; Cordis
 loads a JS/TS package whose default export is `apply(ctx, config)`.
+
+A wasm component also gets WASI preview 2's clock and random interfaces and
+inherited stdout/stderr, so `std::time` and `getrandom` work; stdin, the
+filesystem, the environment and socket permission are not granted. Workspace
+and network access stay behind the `bsh:extension/host` imports.
 """,
     "capabilities": """# Capabilities
 
@@ -263,18 +268,24 @@ the extension's last id segment: `com.example.toolkit` + `echo` becomes
     "hooks": """# Observe hooks
 
 A `hook` contribution is a DECLARATION, not a file. It names one host point,
-and the host delivers that point's batches to your package. No runtime method is
-called into your code for it, so the contribution carries no payload file.
+and the host delivers that point's batches to your package. Two runtimes can
+declare one: `extism` receives a batch through `bsh_hook(point, payload-json)`,
+and `wasm-component` receives it through `on-event(event)`, where the event has
+`event-type = "hook"` and the `{point, batch}` JSON in `payload`. A process,
+MCP, declarative or Cordis package cannot declare hooks.
 
-The validated set is `HOOK_POINTS`:
+The validated set is `HOOK_POINTS` (eight):
 
 | Point | Fires | Payload |
 |---|---|---|
-| `model.request` | before one LLM request | `request_id`, `model`, `api_mode`, `temperature`, `max_tokens`, `prompt_bytes`, and `messages`: the last 48 turns as `{role, bytes, preview}` with a 512-character preview |
-| `model.response` | after one | `response_type` and `usage`: `prompt_tokens`, `completion_tokens`, `total_tokens` |
-| `tool.before` | before a tool call | `agent` and `data`, the call's own fields, value by value redacted |
-| `tool.after` | after it | `agent` and `data`, the result's own fields, value by value redacted |
-| `http.exchange` | one built-in vendor HTTP exchange | `label`, `method`, `url`, `status`, `request_bytes`, `response_bytes`, `content_type`, `ttfb_ms`, `total_ms`, `error`, `request_id`, plus `request_headers`, `response_headers`, `request_body`, `response_body` and `body_truncated` |
+| `turn.start` | a user input opened a turn | `session`, `agent`, `input_chars` |
+| `turn.end` | the turn settled | `session`, `agent`, `failed`, `events` |
+| `model.request` | before one LLM step | `agent`, `data`: `model`, `request_id` and the request fields the agent set, each redacted and capped at 8 KiB |
+| `model.response` | after one | `agent`, `data`: `request_id` and the response/usage fields |
+| `tool.before` | before every tool call, including namespaced MCP tools and `load_skill` | `agent`, `data`: `tool_name`, `call_id`, `tool_args` |
+| `tool.after` | after every tool call | `agent`, `data`: `tool_name`, `call_id`, `tool_result` |
+| `skill.load` | a skill body is attached to a turn's prompt | `skill`, `bytes` |
+| `http.exchange` | every LLM vendor exchange, and every HTTP fetch a sandboxed runtime makes through its bridge | `source`, `request_id`, `method`, `host`, `path`, `status`, `request_bytes`, `response_bytes`, `content_type`, `ttfb_ms`, `total_ms`, `error`, `request_headers`, `response_headers`, `request_body`, `response_body`, `body_truncated` |
 
 ## Declaring one
 
@@ -284,39 +295,43 @@ required = ["hooks.observe"]
 
 [[contribution]]
 kind = "hook"
-id = "http.exchange"
+id = "turn.start"
 `
 
-`hooks.observe` is a HIGH-risk capability: declaring it is a request and
-the host grants it explicitly. The validator refuses a hook declaration without
-it, and refuses an id outside the five points, naming the set.
+`hooks.observe` is a HIGH-risk capability: declaring it is a request and the
+host grants it explicitly. The validator refuses a declaration without it, an
+id outside the eight points, and a runtime other than `extism` or
+`wasm-component`.
 
 ## What a hook can and cannot see
 
-This is the decision a capture package has to make before writing code:
-
 - `http.exchange` carries the exchange itself: both header maps and BOTH
-  BODIES, cut at 32 KiB a side with `body_truncated` saying when a cap hit.
+  bodies, cut at 32 KiB a side with `body_truncated` saying when a cap hit.
   Header names are lowercased, repeated names are joined, and a secret header
-  value reads `[redacted]`.
-- The bodies come from the built-in vendor tap, so they are the real wire
-  bytes: the serialized request and the raw response (an SSE response is the
-  raw `data:` stream). A WASM/Extism `fetch` reports the shape only; its body
-  fields stay `null`.
-- `model.request` carries the prompt SIZE plus a 512-character preview per
-  message, never the whole text.
-- `model.response` carries usage and nothing else: no completion text.
-
-So `http.exchange` is enough to read a model call without owning a port. A
-loopback proxy is still the right choice when the package must see traffic it
-does not route through the host, or needs the bytes uncut.
+  value reads `[redacted]`. The bodies come from the vendor tap, so they are
+  the real wire bytes (an SSE response is the raw `data:` stream). A WASM or
+  Extism `fetch` reports the shape only; its body fields stay `null`.
+- `model.request` carries the prompt size plus per-message previews, not the
+  whole text; `model.response` carries usage and the response shape, no
+  completion text.
+- `turn.start`/`turn.end` are boundaries: sizes, the session and the outcome,
+  never the text.
+- `skill.load` names the skill and its byte size.
+- `tool.before`/`tool.after` carry the call's own fields, value by value
+  redacted. An MCP tool call is an ordinary tool call: at most 12 MCP tools it
+  arrives with its namespaced `tool_name`; above 12 the gateway call is what
+  the hook sees (`tool_name = "mcp"`, and `tool_args` names `{server, tool,
+  arguments}`). The MCP wire frames are not observed.
+- Network is observed where the host mediates it: LLM vendors and the
+  extism/process/wasm HTTP bridge. A shell command's own sockets are outside
+  the host.
+- Hooks are observe-only: a guest cannot deny or rewrite the call.
 
 ## Redaction
 
-The four agent points have every value passed through the host's `redact()`
-before delivery. `http.exchange` masks credential header values at capture and
-passes each body through `redact()` before it is queued, so a token inside a
-prompt never reaches the package in clear. Bounding and masking are the host's
+Every agent hook value passes the host's `redact()` before delivery.
+`http.exchange` masks credential header values at capture and passes each body
+through `redact()` before it is queued. Bounding and masking are the host's
 job; a package still owns whatever it stores.
 """,
 
@@ -360,22 +375,59 @@ directory by the process itself.
   "icon": null,
   "location": "right",
   "default_visibility": "visible",
+  "refresh_ms": 1500,
+  "theme": "midnight",
+  "theme_dark": "midnight-dark",
   "view": {"schema_version": "1.0", "root": {"type": "text", "text": "Ready"}}
 }
-`@
+`
 
 `location` is one of `PANEL_LOCATIONS`; `default_visibility` is
-`PANEL_VISIBILITIES`.
+`PANEL_VISIBILITIES`. `refresh_ms` (250..60000) asks the host to re-read a
+live card while the pane is visible. `theme` and `theme_dark` name themes
+this package contributes; the host uses the dark one in dark mode (falling back
+to the light one) and the reader's palette when neither is named.
 
 Nodes:
 
 `NODE_TABLE`
 
-Limits: %d nodes, %d levels, 256 KiB serialized. `image.src` must be an
-`asset/`-relative path; the host has no remote image loader. A button, input,
-select or checkbox carries an `action` that the host dispatches back to the
-runtime (a process package answers `commands/execute`).
+Beyond the required fields:
+
+- `section` is a collapsible disclosure: `title` and optional `open` (start
+  state). The host remembers the reader's choice across refreshes.
+- `text`, `heading` and `code` take an optional `tone`: one of `TONES`.
+  A tone is a semantic role, never a colour, so the node follows the panel
+  theme and the reader's light/dark choice.
+- `table` takes optional `widths`: one relative weight per column, greater
+  than 0 and at most `MAX_TABLE_WEIGHT`. A missing list means equal columns.
+- `input` is a real editable field; `value` is its starting text.
+
+Limits: `MAX_UI_NODES` nodes, `MAX_UI_DEPTH` levels, `MAX_UI_TEXT`
+characters per text leaf, `MAX_UI_TOTAL_TEXT` of text, `MAX_UI_LIST_ITEMS`
+list rows, `MAX_UI_TABLE_ROWS` table rows, `MAX_UI_COLUMNS` columns,
+`MAX_UI_CELL` characters per cell, `MAX_UI_TABS` tabs, and
+`MAX_UI_BYTES` serialized. `image.src` must be an `asset/`-relative path;
+the host has no remote image loader.
+
+## Actions and refresh
+
+A button, input, select or checkbox carries an `action` that the host
+dispatches back to the runtime (a process package answers `commands/execute`).
+An input sends `{"value": "<typed text>"}`, a select its option value, and a
+checkbox `{"checked": bool}`. Every action carries the revision it was
+rendered from; a stale action is refused, not applied to a newer frame. A
+handler that returns a UI document replaces the card at the next revision; any
+other JSON is shown as a message.
+
+## Declared view vs live card
+
+The declared `view` is a placeholder: the host draws it immediately, then asks
+the runtime for its live card once per selection and on Refresh. If the runtime
+cannot answer, the declared view stays and the panel says why. A package with
+nothing live can ship only the view.
 """,
+
     "workflows": """# Workflows
 
 `workflows/<id>.json` chains calls to the same package's tools:
@@ -790,16 +842,22 @@ def render(topic: str) -> str:
         "`%s`" % value for value in constants.PANEL_LOCATIONS))
     body = body.replace("`PANEL_VISIBILITIES`", ", ".join(
         "`%s`" % value for value in constants.PANEL_VISIBILITIES))
+    for name in (
+        "MAX_UI_BYTES", "MAX_UI_NODES", "MAX_UI_DEPTH", "MAX_UI_TEXT",
+        "MAX_UI_TOTAL_TEXT", "MAX_UI_LIST_ITEMS", "MAX_UI_TABLE_ROWS",
+        "MAX_UI_COLUMNS", "MAX_UI_CELL", "MAX_UI_TABS", "MAX_TABLE_WEIGHT",
+        "PANEL_REFRESH_MS",
+    ):
+        body = body.replace("`%s`" % name, str(getattr(constants, name)))
+    body = body.replace("`TONES`",
+                        ", ".join("`%s`" % tone for tone in constants.TONES))
     if "%d" in body:
-        if topic == "panels":
-            body = body % (constants.MAX_UI_NODES, constants.MAX_UI_DEPTH)
-        else:
-            body = body % (
-                constants.HARD_MAX_MEMORY_MB,
-                constants.HARD_MAX_EXECUTION_MS,
-                constants.HARD_MAX_CONCURRENT_CALLS,
-                constants.HARD_MAX_OUTPUT_BYTES,
-            )
+        body = body % (
+            constants.HARD_MAX_MEMORY_MB,
+            constants.HARD_MAX_EXECUTION_MS,
+            constants.HARD_MAX_CONCURRENT_CALLS,
+            constants.HARD_MAX_OUTPUT_BYTES,
+        )
     return body
 
 

@@ -17,6 +17,18 @@ runtime and why, the contribution and tool surface, the capability grants,
 the safety rules, the build order and the acceptance gates. Read it before
 editing a domain package, and update the checklist as each item lands.
 
+The DevKit's reference tracks the host standard: `reference` answers
+`manifest`, `capabilities`, `contributions`, `runtime`, `panels`, `hooks`,
+`tools`, `skills`, `security` and the rest with the live tables. Read
+`panels` before writing a UI document and `hooks` before an observe
+contribution; both list the current node set, hook points and limits.
+
+Recent host capacities the reference carries: collapsible `section` nodes,
+semantic `tone` roles, weighted table columns, panel `refresh_ms`/`theme`/
+`theme_dark`, eight observe points (including `turn.start`, `turn.end` and
+`skill.load`), hook delivery for wasm components through `on-event`, and WASI
+preview 2 clock/random for components.
+
 The DevKit itself contributes commands (/new, /plan, /domains, /audit,
 /publish, /reference, /grill) and five skills (extdev, extdev-design,
 extdev-build, extdev-ship, grill-me). Commands insert a workflow template;

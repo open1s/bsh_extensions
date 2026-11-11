@@ -8,11 +8,29 @@ already validates and walks the reader through the build order one step at a
 time. The tools exist so every claim can be checked, not so the model can skip
 the design.
 
-    Extension DevKit 2.1.0
+    Extension DevKit 2.2.0
     id      com.open1s.extdev
     runtime process (python3, JSON-RPC 2.0 over stdio)
     surface 14 tools, 1 command, 5 skills, prompt, scoped context,
             workflow, configuration, 4 event subscriptions
+
+## What changed in 2.2.0
+
+- The reference now tracks the current host standard. `panels` documents
+  collapsible `section` nodes, semantic `tone` roles, weighted table columns,
+  `refresh_ms` and per-panel `theme`/`theme_dark`, input/select/checkbox action
+  payloads, declared-view vs live-card semantics, and the current UI limits.
+- `hooks` documents the eight points (adding `turn.start`, `turn.end` and
+  `skill.load`), the `{agent, data}` envelope, the `{point, batch}` delivery
+  for extism (`bsh_hook`) and wasm components (`on-event`,
+  `event-type = "hook"`), the MCP gateway envelope and the network scope.
+- `runtime` records the wasm component's WASI preview 2 surface: clock and
+  random plus inherited stdio, with no stdin, filesystem, environment or
+  socket permission.
+- `validate` checks the new panel fields (widths, tone, refresh interval and
+  theme ids) and accepts hook declarations on a `wasm-component` package.
+- The scoped context points at the live `panels` and `hooks` topics instead of
+  restating them.
 
 ## What changed in 2.1.0
 

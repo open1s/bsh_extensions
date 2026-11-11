@@ -90,7 +90,22 @@ STARTUP_POLICIES = ("on-startup", "on-demand", "on-workspace-open", "manual")
 # path; every one still needs an explicit process.execute grant.
 ALLOWLISTED_COMMANDS = ("python3", "python", "node", "bun", "deno", "sh", "bash")
 
-HOOK_POINTS = ("model.request", "model.response", "tool.before", "tool.after", "http.exchange")
+HOOK_POINTS = (
+    "model.request",
+    "model.response",
+    "tool.before",
+    "tool.after",
+    "http.exchange",
+    "turn.start",
+    "turn.end",
+    "skill.load",
+)
+# Runtimes that may declare observe hooks, and how a batch reaches the guest.
+HOOK_RUNTIMES = ("extism", "wasm-component")
+HOOK_DELIVERY = {
+    "extism": "bsh_hook(point, payload-json)",
+    "wasm-component": 'on-event(event) with event-type "hook"',
+}
 
 # kind -> package-relative file template, and the capability the kind is
 # normally paired with. The file is None for declaration-only kinds.
@@ -130,11 +145,34 @@ MAX_CONTRIBUTION_BYTES = 256 * 1024
 MAX_TOOL_DESCRIPTION_BYTES = 4096
 MAX_PANEL_TITLE_CHARS = 120
 
-# UI schema.
+# UI schema. The host's UiLimits plus the panel-file ceilings.
 UI_SCHEMA_VERSION = "1.0"
-MAX_UI_BYTES = 256 * 1024
-MAX_UI_NODES = 500
+MAX_UI_BYTES = 1024 * 1024
+MAX_UI_NODES = 1000
 MAX_UI_DEPTH = 32
+MAX_UI_TEXT = 16 * 1024
+MAX_UI_TOTAL_TEXT = 256 * 1024
+MAX_UI_LIST_ITEMS = 500
+MAX_UI_TABLE_ROWS = 500
+MAX_UI_COLUMNS = 32
+MAX_UI_CELL = 2048
+MAX_UI_TABS = 16
+# A table column weight is layout, but the host bounds it with the document.
+MAX_TABLE_WEIGHT = 20.0
+# Semantic colour roles; a node names a role, never a colour.
+TONES = ("neutral", "muted", "faint", "accent", "success", "warning", "error")
+# Panel file fields, and the refresh interval range the host accepts.
+PANEL_FIELDS = (
+    "title",
+    "icon",
+    "location",
+    "default_visibility",
+    "refresh_ms",
+    "theme",
+    "theme_dark",
+    "view",
+)
+PANEL_REFRESH_MS = (250, 60000)
 
 PANEL_LOCATIONS = ("right", "left", "bottom", "center")
 PANEL_VISIBILITIES = ("visible", "hidden")
@@ -181,6 +219,7 @@ UI_NODE_REQUIRED = {
     "code": ("value",),
     "image": ("src",),
     "notification": ("level", "text"),
+    "section": ("title",),
     "divider": (),
     "spacer": (),
 }

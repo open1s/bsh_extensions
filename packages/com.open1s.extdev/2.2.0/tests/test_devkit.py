@@ -187,6 +187,76 @@ class ValidateTest(unittest.TestCase):
         (self.root / "extension.toml").write_text(manifest)
         self.assertIn("capabilities.process", self.codes())
 
+    def _panel(self, view, **fields):
+        document = {"title": "Status", "view": {"schema_version": "1.0", "root": view}}
+        document.update(fields)
+        write(self.root, "panels/status.json", json.dumps(document))
+
+    def test_a_panel_accepts_sections_tones_widths_and_refresh(self):
+        self._panel(
+            {
+                "type": "section",
+                "title": "Recent",
+                "open": True,
+                "children": [
+                    {"type": "text", "text": "ok", "tone": "success"},
+                    {
+                        "type": "table",
+                        "columns": ["A", "B"],
+                        "rows": [["1", "2"]],
+                        "widths": [1, 3],
+                    },
+                ],
+            },
+            refresh_ms=1500,
+        )
+        report = validate(self.root)
+        self.assertTrue(report["ok"], report["findings"])
+
+    def test_a_table_width_list_must_match_its_columns(self):
+        self._panel(
+            {
+                "type": "table",
+                "columns": ["A", "B"],
+                "rows": [["1", "2"]],
+                "widths": [1],
+            }
+        )
+        self.assertIn("panel.widths", self.codes())
+
+    def test_an_unknown_tone_is_refused(self):
+        self._panel({"type": "text", "text": "hi", "tone": "chartreuse"})
+        self.assertIn("panel.tone", self.codes())
+
+    def test_a_panel_refresh_interval_is_bounded(self):
+        self._panel({"type": "text", "text": "hi"}, refresh_ms=100)
+        self.assertIn("panel.refresh-ms", self.codes())
+
+    def test_a_panel_theme_must_be_declared_by_the_package(self):
+        self._panel({"type": "text", "text": "hi"}, theme="midnight")
+        self.assertIn("panel.theme", self.codes())
+
+    def test_a_wasm_component_may_declare_hooks(self):
+        manifest = (self.root / "extension.toml").read_text()
+        manifest = manifest.replace(
+            "kind = \"declarative\"", "kind = \"wasm-component\""
+        ).replace(
+            'startup = "on-demand"',
+            'startup = "on-demand"\nentry = "wasm/component.wasm"',
+        ).replace(
+            'required = ["agent.tools.register"]',
+            'required = ["agent.tools.register", "hooks.observe"]',
+        ).replace(
+            "[[contribution]]\nkind = \"tool\"\nid = \"describe\"",
+            "[[contribution]]\nkind = \"hook\"\nid = \"turn.start\"\n\n"
+            "[contribution.payload]\n\n"
+            "[[contribution]]\nkind = \"tool\"\nid = \"describe\"",
+        )
+        (self.root / "extension.toml").write_text(manifest)
+        (self.root / "wasm").mkdir(exist_ok=True)
+        (self.root / "wasm" / "component.wasm").write_bytes(b"\x00asm\x01\x00\x00\x00")
+        self.assertNotIn("contribution.hook", self.codes())
+
     def test_a_symlink_is_refused(self):
         target = self.root / "README.md"
         link = self.root / "linked-readme"

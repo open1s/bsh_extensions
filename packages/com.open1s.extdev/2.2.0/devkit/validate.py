@@ -563,10 +563,10 @@ def validate_contributions(report, manifest):
                 "observe hooks require the hooks.observe capability",
                 path,
             )
-        if report.facts.get("runtime") != "extism":
+        if report.facts.get("runtime") not in constants.HOOK_RUNTIMES:
             report.error(
                 "contribution.hook",
-                "observe hooks are delivered by the extism runtime in this build",
+                "observe hooks are delivered by the extism and wasm-component runtimes in this build",
                 path,
             )
     report.facts["declared"] = declared
@@ -936,10 +936,29 @@ def _check_ui_node(report, node, relative, where, depth, counter):
         if not isinstance(node.get("text"), str):
             report.error("panel.node-field", "%s: %s.text must be a string" % (relative, where),
                          relative)
+    if isinstance(node.get("text"), str) and len(node["text"]) > constants.MAX_UI_TEXT:
+        report.error("panel.text", "%s: %s.text exceeds %d characters"
+                     % (relative, where, constants.MAX_UI_TEXT), relative)
     if kind == "heading":
         level = node.get("level", 2)
         if isinstance(level, bool) or not isinstance(level, int) or not 1 <= level <= 6:
             report.error("panel.node-field", "%s: %s.level must be 1..6" % (relative, where),
+                         relative)
+    if "tone" in node and kind in ("text", "heading", "code"):
+        if node["tone"] not in constants.TONES:
+            report.error(
+                "panel.tone",
+                "%s: %s.tone %r must be one of %s"
+                % (relative, where, node["tone"], ", ".join(constants.TONES)),
+                relative,
+            )
+    if kind == "section":
+        title = node.get("title")
+        if not isinstance(title, str) or not title.strip():
+            report.error("panel.node-field", "%s: %s.title must be a non-empty string"
+                         % (relative, where), relative)
+        if "open" in node and not isinstance(node["open"], bool):
+            report.error("panel.node-field", "%s: %s.open must be a boolean" % (relative, where),
                          relative)
     if kind in ("button", "input", "select", "checkbox"):
         action = node.get("action")
@@ -966,7 +985,18 @@ def _check_ui_node(report, node, relative, where, depth, counter):
             report.error("panel.node-field", "%s: %s.columns must be a list of strings"
                          % (relative, where), relative)
         else:
-            for row in node.get("rows", []):
+            if len(columns) > constants.MAX_UI_COLUMNS:
+                report.error("panel.node-field", "%s: %s has more than %d columns"
+                             % (relative, where, constants.MAX_UI_COLUMNS), relative)
+            rows = node.get("rows", [])
+            if not isinstance(rows, list):
+                report.error("panel.node-field", "%s: %s.rows must be a list" % (relative, where),
+                             relative)
+                rows = []
+            if len(rows) > constants.MAX_UI_TABLE_ROWS:
+                report.error("panel.node-field", "%s: %s has more than %d rows"
+                             % (relative, where, constants.MAX_UI_TABLE_ROWS), relative)
+            for row in rows:
                 if not isinstance(row, list) or len(row) != len(columns):
                     report.error(
                         "panel.node-field",
@@ -975,6 +1005,37 @@ def _check_ui_node(report, node, relative, where, depth, counter):
                         relative,
                     )
                     break
+                if not all(isinstance(cell, str) for cell in row):
+                    report.error("panel.node-field", "%s: %s rows must hold strings"
+                                 % (relative, where), relative)
+                    break
+                if any(len(cell) > constants.MAX_UI_CELL for cell in row):
+                    report.error("panel.node-field",
+                                 "%s: %s has a cell longer than %d characters"
+                                 % (relative, where, constants.MAX_UI_CELL), relative)
+                    break
+            widths = node.get("widths")
+            if widths is not None:
+                if not isinstance(widths, list) or not all(
+                    isinstance(weight, (int, float)) and not isinstance(weight, bool)
+                    for weight in widths
+                ):
+                    report.error("panel.widths", "%s: %s.widths must be a list of numbers"
+                                 % (relative, where), relative)
+                elif len(widths) != len(columns):
+                    report.error(
+                        "panel.widths",
+                        "%s: %s.widths must carry one weight per column"
+                        % (relative, where),
+                        relative,
+                    )
+                elif any(not (0 < weight <= constants.MAX_TABLE_WEIGHT) for weight in widths):
+                    report.error(
+                        "panel.widths",
+                        "%s: %s.widths must be greater than 0 and at most %s"
+                        % (relative, where, constants.MAX_TABLE_WEIGHT),
+                        relative,
+                    )
     if kind == "select":
         options = node.get("options")
         if not isinstance(options, list) or not all(
@@ -990,6 +1051,9 @@ def _check_ui_node(report, node, relative, where, depth, counter):
         ):
             report.error("panel.node-field", "%s: %s.items must be a list of {title}"
                          % (relative, where), relative)
+        elif len(items) > constants.MAX_UI_LIST_ITEMS:
+            report.error("panel.node-field", "%s: %s has more than %d items"
+                         % (relative, where, constants.MAX_UI_LIST_ITEMS), relative)
     if kind == "code" and not isinstance(node.get("value"), str):
         report.error("panel.node-field", "%s: %s.value must be a string" % (relative, where),
                      relative)
@@ -1015,6 +1079,9 @@ def _check_ui_node(report, node, relative, where, depth, counter):
         if not isinstance(tabs, list):
             report.error("panel.node-field", "%s: %s.tabs must be a list" % (relative, where),
                          relative)
+        elif len(tabs) > constants.MAX_UI_TABS:
+            report.error("panel.node-field", "%s: %s has more than %d tabs"
+                         % (relative, where, constants.MAX_UI_TABS), relative)
         else:
             for index, tab in enumerate(tabs):
                 if not isinstance(tab, dict) or "content" not in tab:
@@ -1035,7 +1102,7 @@ def _check_ui_node(report, node, relative, where, depth, counter):
                                depth + 1, counter)
 
 
-def _check_panel(report, contribution_id, relative, payload):
+def _check_panel(report, contribution_id, relative, payload, declared_themes):
     file = _read_json_contribution(report, "panel", contribution_id, relative)
     if file is None:
         return
@@ -1059,6 +1126,28 @@ def _check_panel(report, contribution_id, relative, payload):
         report.error("panel.visibility", "%s: default_visibility %r must be one of %s"
                      % (relative, visibility, ", ".join(constants.PANEL_VISIBILITIES)),
                      relative)
+    refresh = file.get("refresh_ms")
+    if refresh is not None:
+        low, high = constants.PANEL_REFRESH_MS
+        if isinstance(refresh, bool) or not isinstance(refresh, int) or not low <= refresh <= high:
+            report.error(
+                "panel.refresh-ms",
+                "%s: refresh_ms must be an integer in %d..%d" % (relative, low, high),
+                relative,
+            )
+    for field in ("theme", "theme_dark"):
+        value = file.get(field)
+        if value is None:
+            continue
+        if not isinstance(value, str) or not value.strip():
+            report.error("panel.theme", "%s: %s must be a non-empty theme id"
+                         % (relative, field), relative)
+        elif value not in declared_themes:
+            report.error(
+                "panel.theme",
+                "%s: %s %r is not a theme this package declares" % (relative, field, value),
+                relative,
+            )
     view = file.get("view")
     if not isinstance(view, dict):
         report.error("panel.view", "%s needs a view document" % relative, relative)
@@ -1221,7 +1310,8 @@ def validate_contribution_files(report, manifest):
         elif kind in ("command", "prompt", "context"):
             _check_markdown(report, kind, contribution_id, relative)
         elif kind == "panel":
-            _check_panel(report, contribution_id, relative, entry["payload"])
+            _check_panel(report, contribution_id, relative, entry["payload"],
+                         declared.get("theme", []))
         elif kind == "skill":
             _check_skill(report, contribution_id, relative, entry["payload"])
         elif kind == "workflow":
