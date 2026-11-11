@@ -12,10 +12,10 @@
     {
       "id": "com.open1s.extdev",
       "name": "Extension DevKit",
-      "version": "2.1.0",
+      "version": "2.2.0",
       "description": "Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain, and grill-me interrogates an ambiguous brief before code is written.",
-      "path": "packages/com.open1s.extdev/2.1.0",
-      "hash": "ac0435c2e62b02ac643bc5f1de7d0dea77f21c03ad0a8dfb8e1542a160994213"
+      "path": "packages/com.open1s.extdev/2.2.0",
+      "hash": "7df435abb6fe8bd4de1f625881cf97c5192cc98d6729ebefd246728a36ae61f8"
     },
     {
       "id": "com.open1s.llmsniff",
@@ -23,7 +23,7 @@
       "version": "0.1.0",
       "description": "Capture and parse the LLM API traffic the BSH host mediates, through the http.exchange and model observe hooks, with credentials redacted before storage.",
       "path": "packages/com.open1s.llmsniff/0.1.0",
-      "hash": "a316f8295dd3a8f8a3bde5d213ad58b01ed98ce0534a7e4288589dcdb79abd96"
+      "hash": "eccb08069d623ccbf82facc7f1e0e2489028d68357cab249fe931515fd2d7070"
     },
     {
       "id": "com.open1s.opencode",
