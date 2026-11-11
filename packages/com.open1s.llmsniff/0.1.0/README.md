@@ -12,6 +12,7 @@ Capture is **host-mediated traffic only**. The plugin sees what the BSH host sen
 
 - The host dispatches observe-hook batches to the plugin's `bsh_hook` export.
 - The plugin re-redacts every string (defense in depth behind the host's own redaction), parses each event for shape, correlates records by `request_id`, and keeps the newest 200 records in its private extension storage (oldest evicted; eviction is reported, never hidden). Bodies are kept for the newest twelve exchanges, 12 KiB per side; older records keep the metadata and headers and say the body was dropped.
+- Rows also cover the turn boundary (`turn.start`/`turn.end`), a skill body attached to a turn (`skill.load`), and every tool call (`tool.before`/`tool.after`, including namespaced MCP tools and bash), so one card follows a reader's request from input to answer.
 - The `captures` tool lists the records (metadata and headers, `limit` 1-100, optional `point` filter); the `exchange` tool returns one record with its stored headers and bodies. The overview panel renders the newest exchange with previews and the token totals.
 
 ## Design

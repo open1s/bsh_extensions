@@ -10,6 +10,9 @@ What a capture record holds:
 - `http.exchange`: method, host, path, status, request/response byte sizes, content type, TTFB and total latency, error, `request_id`, request and response headers (secret header values are `[redacted]`), and request/response bodies — kept for the newest 12 exchanges, 12 KiB per side, credential-shaped strings masked, with `body_truncated` when the host cut the body at 32 KiB. Older records keep the metadata and headers and say the body was dropped.
 - `model.request`: model, api mode, temperature, max tokens, prompt byte size, message count and per-role counts. Message text is not copied separately; the raw HTTP body is where the text lives. The host caps a hook value at 8 KiB, so a large request arrives as truncated JSON and the record then carries `request_document` (an honest marker) instead of the counts.
 - `model.response`: response type, token usage (prompt/completion/total), response byte size, tool-call flag. Response text is not copied separately.
+- `turn.start` / `turn.end`: session, input size, outcome and event count — the turn's boundaries.
+- `skill.load`: which skill body was attached and its size.
+- `tool.before` / `tool.after`: tool name, call id and argument/result size, including namespaced MCP tools and `load_skill`.
 
 Tools: `captures` lists records with metadata and masked headers (bodies stripped, `has_bodies` when held); `exchange` returns one record with its headers and bodies, and lists the recent request ids when the id is unknown.
 

@@ -31,7 +31,16 @@ const MAX_BODY_CHARS: usize = 12 * 1024;
 const MAX_BODY_RECORDS: usize = 12;
 /// Head of a body shown on the overview panel.
 const PANEL_BODY_CHARS: usize = 1200;
-const POINTS: [&str; 3] = ["http.exchange", "model.request", "model.response"];
+const POINTS: [&str; 8] = [
+    "http.exchange",
+    "model.request",
+    "model.response",
+    "turn.start",
+    "turn.end",
+    "skill.load",
+    "tool.before",
+    "tool.after",
+];
 
 #[cfg(not(test))]
 #[host_fn]
@@ -275,6 +284,63 @@ pub fn build_record(point: &str, event: &Value, ts: u64) -> Option<Value> {
             record.insert("message_count".into(), json!(count));
             record.insert("role_counts".into(), Value::Object(role_counts));
             // message text is deliberately never copied
+        }
+        "turn.start" => {
+            for key in ["session", "agent"] {
+                if let Some(value) = event.get(key) {
+                    record.insert(key.into(), bound_value(value));
+                }
+            }
+            if let Some(chars) = event.get("input_chars").and_then(number) {
+                record.insert("input_chars".into(), chars);
+            }
+        }
+        "turn.end" => {
+            for key in ["session", "agent"] {
+                if let Some(value) = event.get(key) {
+                    record.insert(key.into(), bound_value(value));
+                }
+            }
+            if let Some(failed) = event.get("failed").and_then(boolean) {
+                record.insert("failed".into(), failed);
+            }
+            if let Some(events) = event.get("events").and_then(number) {
+                record.insert("events".into(), events);
+            }
+        }
+        "skill.load" => {
+            if let Some(skill) = event.get("skill") {
+                record.insert("skill".into(), bound_value(skill));
+            }
+            if let Some(bytes) = event.get("bytes").and_then(number) {
+                record.insert("bytes".into(), bytes);
+            }
+        }
+        "tool.before" | "tool.after" => {
+            // The agent's tool hook hands its fields over as strings under
+            // `data`, so the record reads through that map.
+            let data = event.get("data")?;
+            for key in ["tool_name", "call_id"] {
+                if let Some(value) = data.get(key) {
+                    record.insert(key.into(), bound_value(value));
+                }
+            }
+            let payload = if point == "tool.before" {
+                data.get("tool_args")
+            } else {
+                data.get("tool_result")
+            };
+            if let Some(text) = payload.and_then(Value::as_str) {
+                record.insert(
+                    if point == "tool.before" {
+                        "args_chars"
+                    } else {
+                        "result_chars"
+                    }
+                    .into(),
+                    json!(text.chars().count()),
+                );
+            }
         }
         "model.response" => {
             let data = event.get("data")?;
@@ -687,11 +753,30 @@ fn cell(value: Option<&Value>) -> String {
 }
 
 fn table(columns: &[&str], rows: Vec<Vec<String>>) -> Value {
-    json!({"type": "table", "columns": columns, "rows": rows})
+    table_with(columns, &[], rows)
+}
+
+/// A table with optional column weights (one per column, equal when empty).
+fn table_with(columns: &[&str], widths: &[f32], rows: Vec<Vec<String>>) -> Value {
+    let mut value = json!({"type": "table", "columns": columns, "rows": rows});
+    if !widths.is_empty() {
+        value["widths"] = json!(widths);
+    }
+    value
+}
+
+/// A collapsible section: the header stays, the body is drawn while open.
+fn section(title: &str, open: bool, children: Vec<Value>) -> Value {
+    json!({"type": "section", "title": title, "open": open, "children": children})
 }
 
 fn text_node(text: String) -> Value {
     json!({"type": "text", "text": text})
+}
+
+/// Text with a semantic tone: the host resolves it against the panel theme.
+fn text_tone(text: String, tone: &str) -> Value {
+    json!({"type": "text", "text": text, "tone": tone})
 }
 
 fn heading_node(text: &str, level: u8) -> Value {
@@ -907,15 +992,23 @@ pub fn bsh_panel(_input: String) -> FnResult<String> {
     let evicted = store.get("evicted").and_then(Value::as_u64).unwrap_or(0);
     let mut children = vec![
         json!({"type": "heading", "text": "LLM Sniffer", "level": 2}),
-        text_node(format!(
-            "Host-mediated LLM traffic only (BSH observe hooks). Metadata, masked headers and request/response bodies (newest {MAX_BODY_RECORDS} exchanges, {MAX_BODY_CHARS} chars per side); credentials are redacted before storage."
-        )),
-        text_node(format!(
-            "Stored: {} records ({} oldest evicted; bound is {MAX_RECORDS})",
-            records.len(),
-            evicted
-        )),
+        text_tone(
+            format!(
+                "Host-mediated LLM traffic only (BSH observe hooks). Metadata, masked headers and request/response bodies (newest {MAX_BODY_RECORDS} exchanges, {} KiB per side); credentials are redacted before storage.",
+                MAX_BODY_CHARS / 1024
+            ),
+            "muted",
+        ),
+        text_tone(
+            format!(
+                "Stored: {} records ({} oldest evicted; bound is {MAX_RECORDS})",
+                records.len(),
+                evicted
+            ),
+            "muted",
+        ),
     ];
+
     let mut counts: Map<String, Value> = Map::new();
     for record in &records {
         if let Some(point) = record.get("point").and_then(Value::as_str) {
@@ -923,16 +1016,26 @@ pub fn bsh_panel(_input: String) -> FnResult<String> {
             *entry = json!(entry.as_u64().unwrap_or(0) + 1);
         }
     }
+
+    if records.is_empty() {
+        children.push(text_tone(
+            "No captures yet. Captures appear after the host makes an LLM call; the hooks.observe grant is required: bsh ext grant com.open1s.llmsniff hooks.observe"
+                .to_string(),
+            "muted",
+        ));
+    }
+
+    // One section per question: what arrived recently, what the newest exchange
+    // was, and the raw wire payloads. Collapsible so the card opens compact.
+    let mut recent = Vec::new();
     if !counts.is_empty() {
         let summary = counts
             .iter()
             .map(|(point, count)| format!("{point} {}", count.as_u64().unwrap_or(0)))
             .collect::<Vec<_>>()
             .join(" · ");
-        children.push(text_node(format!("By point: {summary}")));
+        recent.push(text_node(format!("By point: {summary}")));
     }
-
-    // The recent list: metadata only, one row per exchange.
     let mut rows = Vec::new();
     for record in records.iter().rev() {
         if record.get("point").and_then(Value::as_str) != Some("http.exchange") {
@@ -953,12 +1056,12 @@ pub fn bsh_panel(_input: String) -> FnResult<String> {
         ]);
     }
     if !rows.is_empty() {
-        children.push(table(
+        recent.push(table_with(
             &["Method", "Host", "Path", "Status", "Latency"],
+            &[1.0, 2.0, 3.0, 1.0, 1.5],
             rows,
         ));
     }
-
     let mut prompt_tokens = 0u64;
     let mut completion_tokens = 0u64;
     let mut total_tokens = 0u64;
@@ -980,15 +1083,12 @@ pub fn bsh_panel(_input: String) -> FnResult<String> {
             .unwrap_or(0);
     }
     if total_tokens > 0 {
-        children.push(text_node(format!(
+        recent.push(text_node(format!(
             "Tokens (captured responses): {prompt_tokens} prompt / {completion_tokens} completion / {total_tokens} total"
         )));
     }
-    if records.is_empty() {
-        children.push(text_node(
-            "No captures yet. Capture needs the hooks.observe grant: bsh ext grant com.open1s.llmsniff hooks.observe"
-                .to_string(),
-        ));
+    if !recent.is_empty() {
+        children.push(section("Recent exchanges", true, recent));
     }
 
     if let Some(newest) = records
@@ -996,33 +1096,42 @@ pub fn bsh_panel(_input: String) -> FnResult<String> {
         .rev()
         .find(|record| record.get("point").and_then(Value::as_str) == Some("http.exchange"))
     {
-        children.push(json!({"type": "divider"}));
-        children.push(heading_node("Newest exchange", 3));
-        children.push(text_node(format!(
-            "{} {}{} → {} · {} ms · {} B request / {} B response{}",
-            cell(newest.get("method")),
-            cell(newest.get("host")),
-            cell(newest.get("path")),
-            cell(newest.get("status")),
-            newest.get("total_ms").and_then(Value::as_u64).unwrap_or(0),
-            newest
-                .get("request_bytes")
-                .and_then(Value::as_u64)
-                .unwrap_or(0),
-            newest
-                .get("response_bytes")
-                .and_then(Value::as_u64)
-                .unwrap_or(0),
-            if newest.get("body_truncated").and_then(Value::as_bool) == Some(true) {
-                " · the host cut a body at 32 KiB"
-            } else {
-                ""
-            },
-        )));
+        let status = newest.get("status").and_then(Value::as_u64).unwrap_or(0);
+        let status_tone = if status >= 400 {
+            "error"
+        } else if status >= 300 {
+            "warning"
+        } else {
+            "success"
+        };
+        let mut detail = vec![text_tone(
+            format!(
+                "{} {}{} → {} · {} ms · {} B request / {} B response{}",
+                cell(newest.get("method")),
+                cell(newest.get("host")),
+                cell(newest.get("path")),
+                cell(newest.get("status")),
+                newest.get("total_ms").and_then(Value::as_u64).unwrap_or(0),
+                newest
+                    .get("request_bytes")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(0),
+                newest
+                    .get("response_bytes")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(0),
+                if newest.get("body_truncated").and_then(Value::as_bool) == Some(true) {
+                    " · the host cut a body at 32 KiB"
+                } else {
+                    ""
+                },
+            ),
+            status_tone,
+        )];
 
         if let Some(body) = newest.get("request_body").and_then(Value::as_str) {
             let shape = request_shape(body);
-            let rows = vec![
+            let mut rows = vec![
                 vec![
                     "Model".to_string(),
                     shape.model.clone().unwrap_or_else(|| "—".to_string()),
@@ -1058,8 +1167,7 @@ pub fn bsh_panel(_input: String) -> FnResult<String> {
                 vec!["Content".to_string(), format!("{} chars", shape.chars)],
                 vec!["Tools".to_string(), shape.tools.to_string()],
             ];
-            children.push(heading_node("Request structure", 4));
-            children.push(table(&["Field", "Value"], rows));
+            detail.push(table_with(&["Field", "Value"], &[2.0, 5.0], rows));
 
             if shape.count > 0 {
                 let shown = shape.messages.len();
@@ -1068,7 +1176,7 @@ pub fn bsh_panel(_input: String) -> FnResult<String> {
                 } else {
                     format!("Messages ({shown})")
                 };
-                children.push(heading_node(&title, 4));
+                detail.push(text_node(title));
                 let mut message_rows = Vec::new();
                 for (index, (role, chars, preview)) in shape.messages.iter().enumerate() {
                     message_rows.push(vec![
@@ -1078,16 +1186,18 @@ pub fn bsh_panel(_input: String) -> FnResult<String> {
                         preview.clone(),
                     ]);
                 }
-                children.push(table(&["#", "Role", "Chars", "Preview"], message_rows));
+                detail.push(table_with(
+                    &["#", "Role", "Chars", "Preview"],
+                    &[1.0, 2.0, 2.0, 8.0],
+                    message_rows,
+                ));
                 if shape.count > shown {
-                    children.push(text_node(format!(
+                    detail.push(text_node(format!(
                         "…and {} more messages; the exchange tool has the full body.",
                         shape.count - shown
                     )));
                 }
             }
-        } else if let Some(marker) = newest.get("bodies").and_then(Value::as_str) {
-            children.push(text_node(marker.to_string()));
         }
 
         if let Some(body) = newest.get("response_body").and_then(Value::as_str) {
@@ -1150,8 +1260,7 @@ pub fn bsh_panel(_input: String) -> FnResult<String> {
             if let Some(model) = shape.model.clone() {
                 rows.push(vec!["Model".to_string(), model]);
             }
-            children.push(heading_node("Response structure", 4));
-            children.push(table(&["Field", "Value"], rows));
+            detail.push(table_with(&["Field", "Value"], &[2.0, 5.0], rows));
         }
 
         for (label, key) in [
@@ -1160,26 +1269,34 @@ pub fn bsh_panel(_input: String) -> FnResult<String> {
         ] {
             let rows = header_rows(newest.get(key), 10);
             if !rows.is_empty() {
-                children.push(heading_node(label, 4));
-                children.push(table(&["Header", "Value"], rows));
+                detail.push(text_tone(label.to_string(), "muted"));
+                detail.push(table_with(&["Header", "Value"], &[3.0, 6.0], rows));
             }
         }
 
-        children.push(text_node(
+        if detail.len() > 1 {
+            children.push(section("Newest exchange", true, detail));
+        }
+
+        let mut bodies = vec![text_tone(
             "Full bodies: call the exchange tool with a request_id.".to_string(),
-        ));
+            "muted",
+        )];
         for (label, key) in [
             ("Request body", "request_body"),
             ("Response body", "response_body"),
         ] {
             if let Some(body) = newest.get(key).and_then(Value::as_str) {
-                children.push(heading_node(label, 4));
-                children.push(json!({
+                bodies.push(text_node(label.to_string()));
+                bodies.push(json!({
                     "type": "code",
                     "language": if key == "request_body" { "json" } else { "text" },
                     "value": preview(body, PANEL_BODY_CHARS),
                 }));
             }
+        }
+        if bodies.len() > 1 {
+            children.push(section("Bodies", false, bodies));
         }
     }
 
@@ -1593,6 +1710,41 @@ mod tests {
         assert_eq!(shape.content_chars, 2);
         assert_eq!(shape.tool_calls, 1);
         assert_eq!(shape.finish_reason.as_deref(), Some("tool_calls"));
+    }
+
+    #[test]
+    fn lifecycle_skill_and_tool_points_are_recorded() {
+        let turn = build_record(
+            "turn.start",
+            &json!({"session": "s1", "agent": "bsh", "input_chars": 42}),
+            1,
+        )
+        .expect("turn start");
+        assert_eq!(turn["session"], "s1");
+        assert_eq!(turn["input_chars"], 42);
+
+        let end = build_record(
+            "turn.end",
+            &json!({"session": "s1", "failed": false, "events": 7}),
+            2,
+        )
+        .expect("turn end");
+        assert_eq!(end["failed"], false);
+        assert_eq!(end["events"], 7);
+
+        let skill =
+            build_record("skill.load", &json!({"skill": "pdf", "bytes": 900}), 3).expect("skill");
+        assert_eq!(skill["skill"], "pdf");
+        assert_eq!(skill["bytes"], 900);
+
+        let after = build_record(
+            "tool.after",
+            &json!({"agent": "bsh", "data": {"tool_name": "bash", "call_id": "c1", "tool_result": "ok"}}),
+            4,
+        )
+        .expect("tool after");
+        assert_eq!(after["tool_name"], "bash");
+        assert_eq!(after["result_chars"], 2);
     }
 
     #[test]

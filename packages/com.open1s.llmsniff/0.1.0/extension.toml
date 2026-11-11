@@ -51,6 +51,36 @@ id = "model.response"
 [contribution.payload]
 
 [[contribution]]
+kind = "hook"
+id = "turn.start"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "hook"
+id = "turn.end"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "hook"
+id = "skill.load"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "hook"
+id = "tool.before"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "hook"
+id = "tool.after"
+
+[contribution.payload]
+
+[[contribution]]
 kind = "tool"
 id = "captures"
 
