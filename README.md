@@ -116,7 +116,58 @@ declared tool. The panel's self-check lints the DevKit itself.
 The package is unsigned and asks for `process.execute` because it is a Python
 runtime; it makes no network requests and reads no secrets. The full contract
 is in
-[`packages/com.open1s.extdev/2.1.0/README.md`](packages/com.open1s.extdev/2.1.0/README.md).
+[`packages/com.open1s.extdev/2.2.0/README.md`](packages/com.open1s.extdev/2.2.0/README.md).
+
+### Trinno
+
+An AI-assisted literature research workflow for graduate students and
+early-career researchers. Three tools do the deterministic I/O:
+`search_literature` queries OpenAlex and arXiv (keyless) and appends a
+deduplicated reading list while downloading a bounded number of PDFs;
+`intake_papers` extracts text and metadata from PDFs and BibTeX, completes
+missing metadata from OpenAlex, and writes one note-card skeleton per paper;
+`init_project` scaffolds the project (methodology skeletons, PRISMA screening
+log, quality appraisal, reproducibility checklist, TRIZ/ARIZ-85C innovation
+workspace) without overwriting anything. Three bundled skills
+(`research-workflow`, `research-methodology`, `ariz-triz`) guide the agent
+through gap analysis and proposal drafting; the extension makes no LLM calls
+itself.
+
+It needs `process.execute` for the Python runtime, `network.http` for OpenAlex
+and arXiv, and `workspace.write` for the reading list, PDFs and notes.
+
+~~~text
+bsh ext grant com.open1s.trinno process.execute --scope program:python3
+bsh ext grant com.open1s.trinno network.http --scope domain:api.openalex.org
+bsh ext grant com.open1s.trinno network.http --scope domain:export.arxiv.org
+bsh ext grant com.open1s.trinno network.http --scope domain:arxiv.org
+bsh ext grant com.open1s.trinno workspace.write --scope path:<absolute-workspace-path>
+bsh ext market install com.open1s.trinno
+~~~
+
+Full details are in
+[`packages/com.open1s.trinno/1.1.0/README.md`](packages/com.open1s.trinno/1.1.0/README.md).
+
+### Change History
+
+A first-party Cordis extension that lets the agent inspect and manipulate a
+repository's change history through **jj** (preferred when the workspace is a
+jj repository) or **git**. One `change_history` tool covers status, log, diff,
+show, new, describe, edit, squash, rebase, restore and undo, and a live Git
+panel shows the working copy, line stats and commit graph. Every command runs
+through the host's capability-gated terminal seam, so `process.execute` and the
+audit trail cover each effect; arguments are shell-quoted and calls are
+serialized for jj's working-copy lock.
+
+~~~text
+bsh ext grant com.open1s.vcs process.execute
+bsh ext grant com.open1s.vcs agent.tools.register
+bsh ext grant com.open1s.vcs ui.panels
+bsh ext market install com.open1s.vcs
+~~~
+
+Full details are in
+[`packages/com.open1s.vcs/1.4.0/README.md`](packages/com.open1s.vcs/1.4.0/README.md).
 
 ## Layout
 

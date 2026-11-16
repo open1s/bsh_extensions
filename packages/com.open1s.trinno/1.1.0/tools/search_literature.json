@@ -1,0 +1,46 @@
+{
+  "description": "Search OpenAlex and arXiv for literature on a research topic, append the deduplicated results to the project's reading-list.md, and optionally download arXiv PDFs into papers/_inbox/.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to the research project folder (the folder that contains papers/, notes/ and reading-list.md)."
+      },
+      "query": {
+        "type": "string",
+        "description": "Search query sent to OpenAlex and arXiv."
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum results per source (1-50).",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10
+      },
+      "download": {
+        "type": "boolean",
+        "description": "Download arXiv PDFs into papers/_inbox/ (default true).",
+        "default": true
+      },
+      "max_downloads": {
+        "type": "integer",
+        "description": "Maximum number of PDFs downloaded in this call (0-50, default 2). arXiv is fetched serially at about 3 seconds per paper, so the count is bounded to keep the call within the host time limit. Repeat the call to continue.",
+        "minimum": 0,
+        "maximum": 50,
+        "default": 2
+      }
+    },
+    "required": [
+      "path",
+      "query"
+    ],
+    "additionalProperties": false
+  },
+  "capabilities": [
+    "network.http",
+    "workspace.write",
+    "workspace.read",
+    "process.execute"
+  ]
+}

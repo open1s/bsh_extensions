@@ -1,0 +1,29 @@
+{
+  "description": "Turn local PDF and BibTeX papers into per-paper markdown note card skeletons under the project's notes/ directory, completing missing metadata from OpenAlex. Existing notes are never overwritten.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to the research project folder (the folder that contains papers/ and notes/)."
+      },
+      "files": {
+        "type": "array",
+        "description": "Optional list of absolute PDF or .bib file paths. When omitted, every PDF and .bib file under papers/ (including papers/_inbox/) is scanned.",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "additionalProperties": false
+  },
+  "capabilities": [
+    "network.http",
+    "workspace.write",
+    "workspace.read",
+    "process.execute"
+  ]
+}
