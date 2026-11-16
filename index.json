@@ -32,6 +32,22 @@
       "description": "Free OpenCode Zen models for BSH through a local relay that speaks the anonymous lane wire shape",
       "path": "packages/com.open1s.opencode/1.0.3",
       "hash": "e36bf96ac796e6f3cc41e4b164966708f9a35735bbba53814a7867618250dd64"
+    },
+    {
+      "id": "com.open1s.trinno",
+      "name": "Trinno",
+      "version": "1.1.0",
+      "description": "AI-assisted literature research workflow for graduate students and early-career researchers: search OpenAlex and arXiv, ingest papers into note cards, and scaffold methodology and TRIZ/ARIZ innovation workspaces, guided by bundled research skills.",
+      "path": "packages/com.open1s.trinno/1.1.0",
+      "hash": "6196fe96575d3915b58bdbe26b1f164d76193410f35718e37a03de8d0100a2ab"
+    },
+    {
+      "id": "com.open1s.vcs",
+      "name": "Change History",
+      "version": "1.4.0",
+      "description": "Inspect and manipulate the workspace's change history through jj (preferred) or git, with one model-callable tool and a live Git panel",
+      "path": "packages/com.open1s.vcs/1.4.0",
+      "hash": "67fdf3990ad5357ac25d89aa4d29c402ec87bacb3d2d909f05217a69c357ced9"
     }
   ]
 }

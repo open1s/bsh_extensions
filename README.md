@@ -206,8 +206,10 @@ Do not commit `__pycache__`, build output, or installed package data.
 <!-- market-table:start -->
 | Id | Name | Version | What it does |
 |---|---|---|---|
-| `com.open1s.computer-use` | Computer Use | 1.0.0 | Real macOS screen, pointer and keyboard tools, panel, workflow and hooks built as a BSH process extension |
-| `com.open1s.extdev` | Extension DevKit | 2.1.0 | Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain, and grill-me interrogates an ambiguous brief before code is written. |
+| `com.open1s.computer-use` | Computer Use | 1.0.0 | A real, opt-in screen, pointer and keyboard extension for macOS |
+| `com.open1s.extdev` | Extension DevKit | 2.2.0 | Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain, and grill-me interrogates an ambiguous brief before code is written. |
 | `com.open1s.llmsniff` | LLM Sniffer | 0.1.0 | Capture and parse the LLM API traffic the BSH host mediates, through the http.exchange and model observe hooks, with credentials redacted before storage. |
 | `com.open1s.opencode` | OpenCode Zen | 1.0.3 | Free OpenCode Zen models for BSH through a local relay that speaks the anonymous lane wire shape |
+| `com.open1s.trinno` | Trinno | 1.1.0 | AI-assisted literature research workflow for graduate students and early-career researchers: search OpenAlex and arXiv, ingest papers into note cards, and scaffold methodology and TRIZ/ARIZ innovation workspaces, guided by bundled research skills. |
+| `com.open1s.vcs` | Change History | 1.4.0 | Inspect and manipulate the workspace's change history through jj (preferred) or git, with one model-callable tool and a live Git panel |
 <!-- market-table:end -->
