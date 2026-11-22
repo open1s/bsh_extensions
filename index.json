@@ -15,7 +15,7 @@
       "version": "2.2.0",
       "description": "Design and ship BSH extensions from inside BSH: a domain-first blueprint, a validating scaffold, a manifest compiler, a review with stable rule ids, a dry run of every declared tool, deterministic archives and a Git market index editor. Commands and skills guide a specific extension for a specific domain, and grill-me interrogates an ambiguous brief before code is written.",
       "path": "packages/com.open1s.extdev/2.2.0",
-      "hash": "c8222a5d9ee786ba51c085ae22b0e3ba077e63be7bfba1456893c64195a72670"
+      "hash": "e225c623b4edca9a9e321bae4760b3465b0aad4e9e05fbeb7d1ccb86aa556703"
     },
     {
       "id": "com.open1s.llmsniff",
