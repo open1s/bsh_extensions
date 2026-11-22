@@ -217,6 +217,15 @@ def _handle_blueprint(arguments, config, state):
 
 # --- Consolidated design tool ------------------------------------------------
 
+# The modes the single `design` tool dispatches on, in the order the tool
+# description lists them. An unknown mode is refused here instead of falling
+# through to design, which would silently answer a different question.
+DESIGN_MODES = (
+    "design", "blueprint", "scaffold", "explain", "validate", "lint", "check",
+    "smoke", "publish", "package", "bump", "hash", "migrate", "events",
+)
+
+
 def _handle_design(arguments, config, state):
     """Design tool: a unified interface for all DevKit operations.
     
@@ -237,6 +246,9 @@ def _handle_design(arguments, config, state):
     - mode='events': report the host events this process has observed
     """
     mode = arguments.get("mode", "design")
+    if mode not in DESIGN_MODES:
+        fail("unknown mode %r; this tool offers %s"
+             % (mode, ", ".join(DESIGN_MODES)))
     
     # Design-time operations
     if mode == "explain":
@@ -275,9 +287,6 @@ def _handle_design(arguments, config, state):
         return _handle_migrate(arguments, config, state)
     if mode == "events":
         return _handle_events(arguments, config, state)
-    
-    # Default: design mode
-    return _handle_design(arguments, config, state)
 # Internal tools (for skill workflows, not declared in manifest). Defined after
 # the handlers so the module imports: a registry above the functions it names
 # raises NameError on the first import and the whole extension fails to start.

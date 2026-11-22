@@ -1,5 +1,5 @@
 {
-  "description": "Design a BSH extension for a specific domain before writing code. Returns the matched domain profile, the runtime it actually needs and why, the contribution plan, full tool descriptors with input schemas, the capability list with risk, scope and exact bsh ext grant commands, safety rules, build order, acceptance gates and open questions. Use it first for every new domain extension; follow it with scaffold. Also supports modes: check, lint, smoke, publish, package, bump, hash, explain, migrate, events, validate.",
+  "description": "The single entry point of the Extension DevKit. One tool, one `mode` argument, every DevKit operation.\n\nQuick start — the four calls an LLM makes most:\n  {\"mode\": \"design\", \"domain\": \"data\", \"brief\": \"Query our warehouse\"} — match a domain and return a full blueprint (runtime, tools, capabilities, grants, safety rules, build order, gates).\n  {\"mode\": \"scaffold\", \"path\": \"/abs/path/to/pkg\", \"id\": \"com.example.warehouse\", \"domain\": \"data\", \"brief\": \"Query our warehouse\"} — write a validating package skeleton from that blueprint.\n  {\"mode\": \"check\", \"path\": \"/abs/path/to/pkg\", \"smoke\": true} — validate + lint + hash + dry-run every declared tool in one report.\n  {\"mode\": \"publish\", \"path\": \"/abs/path/to/pkg\", \"action\": \"merge\"} — write the package's entry into the market index.json.\n\nAll modes and their arguments:\n  design     — domain, brief, id?, runtime?, path?  (default mode; returns a blueprint, optionally compared with an existing package at path)\n  blueprint  — domain, brief, path (required), id?  — like design but also writes docs/design.md into the package\n  scaffold   — path (required), id (required), domain?, brief?, runtime?, name?, description?, author?, license?, force?  — create a new package\n  explain    — topic?  — return the BSH standard reference for one topic (manifest, capabilities, tools, market, ...); omit topic for the index\n  validate   — path (required)  — parse and check one package, returns findings with rule ids\n  lint       — path (required)  — validate plus review rules (EXT001..EXT120), returns findings with severity\n  check      — path (required), smoke?, tool?, arguments?  — lint + hash + file count; smoke=true dry-runs every tool, tool=\"name\" dry-runs one\n  smoke      — path (required), tool?, arguments?  — dry-run declared tools locally\n  publish    — path (required), action (entry|merge|verify|list|readme, default entry), repo?  — build/merge/verify a market index entry; merge writes index.json\n  package    — path (required), out?  — build a deterministic .tar.gz release archive\n  bump       — path (required), release (major|minor|patch|semver, default patch)  — raise the version and open a changelog entry\n  hash       — path (required)  — print the canonical package hash the market index carries\n  migrate    — path (required), write?  — rewrite a 1.x manifest as the 2.0 envelope\n  events     — limit?  — report host events this process observed\n\nRules of thumb: every path is absolute (the process cwd is its own package); design before scaffold, scaffold before code; one build step per change, then check with smoke=true.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -21,19 +21,19 @@
           "migrate",
           "events"
         ],
-        "description": "Operation mode: design (default), check, lint, smoke, publish, package, bump, hash, explain, migrate, events, scaffold, blueprint, validate."
+        "description": "Which DevKit operation to run. Omit for design. See the tool description for the argument each mode expects."
       },
       "domain": {
         "type": "string",
-        "description": "A domain profile key (knowledge, devops, data, web, documents, media, messaging, security, research, model, system, generic) or a sentence that names the domain."
+        "description": "Domain profile key (knowledge, devops, data, web, documents, media, messaging, security, research, model, system, generic) or a sentence naming the domain. Used by design, blueprint and scaffold."
       },
       "brief": {
         "type": "string",
-        "description": "One or two sentences about what the extension should let the reader do."
+        "description": "One or two sentences about what the extension should let the reader do. Used by design, blueprint and scaffold."
       },
       "id": {
         "type": "string",
-        "description": "Reverse-domain extension id; omit to get a suggestion derived from the brief."
+        "description": "Reverse-domain extension id (e.g. com.example.toolkit). Required for scaffold; optional for design/blueprint (a suggestion is derived from the brief when omitted)."
       },
       "runtime": {
         "type": "string",
@@ -41,23 +41,76 @@
           "declarative",
           "process"
         ],
-        "description": "Override the profile's runtime recommendation."
+        "description": "Override the profile's runtime recommendation (declarative = no code runs, process = the host starts server.py). Used by design, blueprint and scaffold."
       },
       "path": {
         "type": "string",
-        "description": "Absolute path to an existing package to compare with the blueprint, or to validate/lint/publish."
+        "description": "Absolute path to a package directory. Required for blueprint, scaffold, validate, lint, check, smoke, publish, package, bump, hash and migrate; optional for design (compares the blueprint with the package on disk)."
+      },
+      "action": {
+        "type": "string",
+        "enum": ["entry", "merge", "verify", "list", "readme"],
+        "description": "Market sub-action for mode=publish. entry (default) prints the index entry JSON; merge writes it into index.json; verify checks every entry against its directory and hash; list reads the index; readme rewrites the README package table."
+      },
+      "release": {
+        "type": "string",
+        "description": "Version bump for mode=bump: major, minor, patch (default) or an explicit semantic version like 2.1.0. Refuses a downgrade."
+      },
+      "out": {
+        "type": "string",
+        "description": "Absolute output directory for mode=package. Defaults to the package's parent; must not be inside the package."
+      },
+      "repo": {
+        "type": "string",
+        "description": "Absolute path to the market checkout (the clone that holds index.json). For mode=publish when the package path alone cannot locate it."
+      },
+      "topic": {
+        "type": "string",
+        "description": "Reference topic for mode=explain. Omit for the index of all topics; known topics include overview, manifest, capabilities, contributions, tools, panels, market, errors, checklist, domains, design, commands, skills, security, protocol, ids, workflows."
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Max recent events to return for mode=events (default 20)."
       },
       "smoke": {
         "type": "boolean",
-        "description": "Run a smoke test of every declared tool (for check mode)."
+        "description": "For mode=check: run a dry-run smoke test of every declared tool."
       },
       "tool": {
         "type": "string",
-        "description": "Name of a specific tool to smoke test (for check mode)."
+        "description": "Name of one declared tool to dry-run (mode=check or mode=smoke). Naming a tool in check implies smoke."
       },
       "arguments": {
         "type": "object",
-        "description": "Arguments for the tool to smoke test (for check mode)."
+        "description": "Arguments object passed to the tool named by `tool` during a smoke run."
+      },
+      "write": {
+        "type": "boolean",
+        "description": "For mode=migrate: also rewrite extension.toml (a .v1 backup is kept). For mode=blueprint this is implied."
+      },
+      "force": {
+        "type": "boolean",
+        "description": "For mode=scaffold: write into a non-empty target directory."
+      },
+      "name": {
+        "type": "string",
+        "description": "Human-readable package name for mode=scaffold. Derived from the id when omitted."
+      },
+      "description": {
+        "type": "string",
+        "description": "One-line package description for mode=scaffold. Derived from the brief when omitted."
+      },
+      "version": {
+        "type": "string",
+        "description": "Starting version for mode=scaffold (default 1.0.0)."
+      },
+      "author": {
+        "type": "string",
+        "description": "Author name written into the scaffolded manifest and LICENSE (default from configuration)."
+      },
+      "license": {
+        "type": "string",
+        "description": "License name for mode=scaffold (default MIT)."
       }
     },
     "required": [],
