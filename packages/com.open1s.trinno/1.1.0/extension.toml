@@ -4,11 +4,9 @@ schema_version = "2.0"
 id = "com.open1s.trinno"
 name = "Trinno"
 version = "1.1.0"
-description = "AI-assisted literature research workflow for graduate students and early-career researchers: search OpenAlex and arXiv, ingest papers into note cards, and scaffold methodology and TRIZ/ARIZ innovation workspaces, guided by bundled research skills."
-authors = ["open1s"]
+description = "AI-assisted literature research workflow for graduate students and early-career researchers: search OpenAlex and arXiv (keyless) into a reading list, ingest local papers (PDF/BibTeX text extraction plus OpenAlex metadata completion) into per-paper note card skeletons, and scaffold a methodology workspace (protocol, PRISMA screening log, quality appraisal, reproducibility checklist) plus a TRIZ/ARIZ-85C innovation workspace; LLM analysis (gap analysis, systematic innovation, proposal drafting) is done by the BSH agent guided by bundled research-workflow, research-methodology and ariz-triz skills, not by the tools."
+authors = ["BSH Extension Author"]
 license = "MIT"
-repository = "https://github.com/open1s/bsh_extensions"
-homepage = "https://github.com/open1s/bsh_extensions/tree/main/packages/com.open1s.trinno/1.1.0"
 
 [compatibility]
 host = ">=3.0.0, <5.0.0"
@@ -44,6 +42,12 @@ id = "intake_papers"
 [[contribution]]
 kind = "tool"
 id = "init_project"
+
+[contribution.payload]
+
+[[contribution]]
+kind = "tool"
+id = "analyze_gaps"
 
 [contribution.payload]
 

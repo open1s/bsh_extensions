@@ -89,7 +89,7 @@ This document follows `requirement.md` (the confirmed specification, including i
 |---|---|---|---|
 | process.execute | critical | the process runtime starts the tools | `bsh ext grant com.open1s.trinno process.execute --scope program:python3` |
 | network.http | high | OpenAlex, arXiv metadata and arXiv PDF downloads | `bsh ext grant com.open1s.trinno network.http --scope domain:api.openalex.org`, `... --scope domain:export.arxiv.org`, `... --scope domain:arxiv.org` |
-| workspace.write | high | reading list, downloaded PDFs, note cards | `bsh ext grant com.open1s.trinno workspace.write --scope path:<absolute-workspace-path>` |
+| workspace.write | high | reading list, downloaded PDFs, note cards | `bsh ext grant com.open1s.trinno workspace.write --scope path:/Users/gaosg/Projects/hello` |
 | workspace.read | low | reads papers and the existing reading list | automatic |
 | agent.tools.register | low | exposes the two tools | automatic |
 | agent.skills.provide | medium | ships the research workflow | automatic |

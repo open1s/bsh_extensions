@@ -68,6 +68,7 @@ class PackageTest(unittest.TestCase):
             ("skill", "ariz-triz"),
             ("skill", "research-methodology"),
             ("skill", "research-workflow"),
+            ("tool", "analyze_gaps"),
             ("tool", "init_project"),
             ("tool", "intake_papers"),
             ("tool", "search_literature"),
@@ -80,7 +81,7 @@ class PackageTest(unittest.TestCase):
         self.assertEqual(listed, declared)
 
     def test_tool_schemas_use_path_argument(self):
-        for tool_id in ("search_literature", "intake_papers", "init_project"):
+        for tool_id in ("search_literature", "intake_papers", "init_project", "analyze_gaps"):
             document = json.loads((ROOT / "tools" / (tool_id + ".json")).read_text(encoding="utf-8"))
             properties = document["input_schema"]["properties"]
             self.assertIn("path", properties, tool_id)
@@ -238,9 +239,16 @@ class SearchArgumentTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.project = Path(self.temp.name)
         self.addCleanup(self.temp.cleanup)
-        # Argument validation must not depend on the network.
+        # Argument validation must not depend on the network: OpenAlex gets
+        # JSON, arXiv gets a minimal valid Atom feed.
         self.original = server.http_get
-        server.http_get = lambda *_args, **_kwargs: (b'{"results": []}', "application/json", "")
+        atom = (b'<feed xmlns="http://www.w3.org/2005/Atom">'
+                b'<entry><title>stub</title></entry></feed>')
+        def _stub(_url, _max_bytes, accept=None, _deadline=None):
+            if accept == "application/atom+xml":
+                return atom, "application/atom+xml", ""
+            return b'{"results": []}', "application/json", ""
+        server.http_get = _stub
         self.addCleanup(self._restore)
 
     def _restore(self):
@@ -263,6 +271,14 @@ class SearchArgumentTest(unittest.TestCase):
         with self.assertRaises(server.ToolError):
             server.tool_search_literature({
                 "path": str(self.project), "query": "x", "download": False, "max_downloads": "many"})
+
+    def test_max_downloads_is_bounded_by_the_declared_maximum(self):
+        with self.assertRaises(server.ToolError):
+            server.tool_search_literature({
+                "path": str(self.project), "query": "x", "download": False, "max_downloads": 51})
+        result = server.tool_search_literature({
+            "path": str(self.project), "query": "x", "download": False, "max_downloads": 50})
+        self.assertEqual(result["failures"], [])
 
 
 class InitProjectTest(unittest.TestCase):
@@ -327,6 +343,98 @@ class InitProjectTest(unittest.TestCase):
             self.assertIn(concept, analysis)
 
 
+class AnalyzeGapsTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.project = Path(self.temp.name)
+        self.notes_dir = self.project / "notes"
+        self.notes_dir.mkdir(parents=True, exist_ok=True)
+        self.addCleanup(self.temp.cleanup)
+
+    def test_analyze_gaps_creates_gaps_md(self):
+        # Create a sample note card
+        note_content = """# Test Paper
+
+- 作者：Doe, Jane
+- 年份：2020
+- DOI：10.1000/test
+- 来源文件：`papers/sample.pdf`
+- 证据链接：https://example.org/test
+
+## 摘要
+
+This is a test paper about widgets.
+
+## 研究问题
+
+如何提高小部件的性能？
+
+## 方法
+
+实验方法
+
+## 结论
+
+该方法有效
+
+## 局限
+
+样本量有限
+"""
+        note_path = self.notes_dir / "test-paper.md"
+        note_path.write_text(note_content, encoding="utf-8")
+
+        result = server.tool_analyze_gaps({"path": str(self.project)})
+        self.assertEqual(result["cards_analyzed"], 1)
+        self.assertTrue(result["gaps_file"].endswith("gaps.md"))
+        self.assertIn("has_gaps", result)
+        self.assertTrue(result["has_gaps"])
+
+        gaps_file = Path(result["gaps_file"])
+        self.assertTrue(gaps_file.exists())
+        content = gaps_file.read_text(encoding="utf-8")
+        self.assertIn("# 研究缺口分析", content)
+        self.assertIn("主题：性能", content)
+
+    def test_analyze_gaps_requires_notes(self):
+        with self.assertRaises(server.ToolError) as context:
+            server.tool_analyze_gaps({"path": str(self.project)})
+        self.assertIn("没有找到笔记卡", str(context.exception))
+
+    def test_analyze_gaps_fails_if_gaps_md_exists(self):
+        # Create a sample note card
+        note_content = """# Test Paper
+
+- 作者：Doe, Jane
+- 年份：2020
+- DOI：10.1000/test
+- 来源文件：`papers/sample.pdf`
+- 证据链接：https://example.org/test
+
+## 摘要
+
+This is a test paper about widgets.
+"""
+        note_path = self.notes_dir / "test-paper.md"
+        note_path.write_text(note_content, encoding="utf-8")
+
+        # First call creates gaps.md
+        server.tool_analyze_gaps({"path": str(self.project)})
+
+        # Second call should fail
+        with self.assertRaises(server.ToolError) as context:
+            server.tool_analyze_gaps({"path": str(self.project)})
+        self.assertIn("gaps.md 已存在", str(context.exception))
+
+    def test_analyze_gaps_relative_path_refused(self):
+        with self.assertRaises(server.ToolError):
+            server.tool_analyze_gaps({"path": "relative/path"})
+
+    def test_analyze_gaps_missing_path_refused(self):
+        with self.assertRaises(server.ToolError):
+            server.tool_analyze_gaps({"path": "/nonexistent/project/folder"})
+
+
 class DownloadBudgetTest(unittest.TestCase):
     """The PDF download budget is bounded so a tool call returns in time."""
 
@@ -387,6 +495,88 @@ class DownloadBudgetTest(unittest.TestCase):
         self.assertEqual(downloaded, [])
         self.assertEqual(skipped[0]["reason"], "already exists")
         self.assertEqual(len(calls), 1)
+
+    def test_polite_sleep_is_clamped_to_the_call_deadline(self):
+        calls = []
+        original = server.http_get
+        server.http_get = self._stub_http(calls)
+        sleeps = []
+        original_sleep = server.time.sleep
+        server.time.sleep = lambda seconds: sleeps.append(seconds)
+        try:
+            # A deadline that is already nearly exhausted: the 3 s polite
+            # delay must be clamped instead of sleeping past the budget.
+            deadline = server.time.monotonic() + 0.5
+            _downloaded, _skipped, _failures, pending = server.download_arxiv_pdfs(
+                self.project, self.entries, max_downloads=4, deadline=deadline)
+        finally:
+            server.http_get = original
+            server.time.sleep = original_sleep
+        self.assertTrue(all(delay <= 0.5 for delay in sleeps), sleeps)
+        self.assertTrue(pending, "entries that did not fit the budget must be reported pending")
+
+
+class ProtocolTest(unittest.TestCase):
+    """The JSON-RPC loop must survive malformed input and keep serving."""
+
+    def test_non_string_method_is_rejected(self):
+        outcome, keep_going = server.handle({"method": 42, "params": {}})
+        self.assertIn("error", outcome)
+        self.assertTrue(keep_going)
+
+    def test_non_object_params_are_rejected(self):
+        outcome, keep_going = server.handle({"method": "tools/call", "params": ["x"]})
+        self.assertIn("error", outcome)
+        self.assertTrue(keep_going)
+
+    def test_non_object_arguments_are_rejected(self):
+        outcome, keep_going = server.handle(
+            {"method": "tools/call", "params": {"name": "init_project", "arguments": [1, 2]}})
+        self.assertIn("error", outcome)
+        self.assertEqual(outcome["error"]["code"], -32602)
+        self.assertTrue(keep_going)
+
+    def test_unknown_tool_is_reported_not_raised(self):
+        outcome, keep_going = server.handle(
+            {"method": "tools/call", "params": {"name": "nope", "arguments": {}}})
+        self.assertEqual(outcome["error"]["code"], -32601)
+        self.assertTrue(keep_going)
+
+    def test_handle_never_raises_on_a_bug(self):
+        original = server.TOOL_HANDLERS["init_project"]
+        server.TOOL_HANDLERS["init_project"] = lambda _args: 1 / 0
+        try:
+            outcome, keep_going = server.handle(
+                {"method": "tools/call",
+                 "params": {"name": "init_project", "arguments": {}}})
+        finally:
+            server.TOOL_HANDLERS["init_project"] = original
+        self.assertEqual(outcome["error"]["code"], -32603)
+        self.assertTrue(keep_going)
+
+
+class ArxivParseTest(unittest.TestCase):
+    def test_dtd_entity_expansion_is_defused(self):
+        payload = (b'<?xml version="1.0"?>'
+                   b'<!DOCTYPE feed [<!ENTITY xxe "boom">]>'
+                   b'<feed xmlns="http://www.w3.org/2005/Atom"><entry>'
+                   b'<title>&xxe;</title></entry></feed>')
+        original = server.http_get
+        server.http_get = lambda *_a, **_k: (payload, "application/atom+xml", "")
+        try:
+            with self.assertRaises(server.ToolError):
+                server.arxiv_search("x", 5)
+        finally:
+            server.http_get = original
+
+    def test_arxiv_search_rejects_invalid_xml(self):
+        original = server.http_get
+        server.http_get = lambda *_a, **_k: (b"not xml at all", "application/atom+xml", "")
+        try:
+            with self.assertRaises(server.ToolError):
+                server.arxiv_search("x", 5)
+        finally:
+            server.http_get = original
 
 
 if __name__ == "__main__":

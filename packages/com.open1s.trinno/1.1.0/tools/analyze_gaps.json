@@ -1,0 +1,15 @@
+{
+  "name": "analyze_gaps",
+  "description": "Analyze literature notes to detect gaps and cluster by theme. Reads notes/ and reading-list.md to produce gaps.md with: theme clusters (papers grouped by research themes), contradictions between papers, and research gaps with evidence links.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Absolute path to the research project folder."
+      }
+    },
+    "required": ["path"],
+    "additionalProperties": false
+  }
+}

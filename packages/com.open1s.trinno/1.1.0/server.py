@@ -24,7 +24,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 
-TOOLS = ("search_literature", "intake_papers", "init_project")
+TOOLS = ("search_literature", "intake_papers", "init_project", "analyze_gaps")
 
 OPENALEX_API = "https://api.openalex.org/works"
 ARXIV_API = "https://export.arxiv.org/api/query"
@@ -276,8 +276,15 @@ def arxiv_search(query, limit, deadline=None):
     )
     payload, _content_type, _final = http_get(url, MAX_API_BYTES, "application/atom+xml", deadline)
     try:
+        # Defuse DTDs and entity expansion before parsing: the response comes
+        # from the network, and a DTD would otherwise let the parser resolve
+        # external entities (XXE) or expand nested ones (billion laughs).
+        # Reject any DOCTYPE/ENTITY declaration outright, then parse.
+        lowered = payload.lower()
+        if b"<!doctype" in lowered or b"<!entity" in lowered:
+            raise ET.ParseError("DTD and entity declarations are not allowed")
         root = ET.fromstring(payload)
-    except ET.ParseError as error:
+    except (ET.ParseError, ValueError) as error:
         raise ToolError("invalid arXiv response: %s" % error)
     atom = "{http://www.w3.org/2005/Atom}"
     arxiv_ns = "{http://arxiv.org/schemas/atom}"
@@ -443,7 +450,21 @@ def download_arxiv_pdfs(project_path, entries, max_downloads=MAX_DOWNLOADS_PER_C
                             "reason": "call time budget is exhausted"})
             continue
         if index:
-            time.sleep(ARXIV_DELAY_SECONDS)
+            delay = ARXIV_DELAY_SECONDS
+            if deadline is not None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    pending.append({"title": entry.get("title") or "", "arxiv_id": arxiv_id,
+                                    "reason": "call time budget is exhausted"})
+                    break
+                delay = min(delay, max(0.0, remaining))
+            # The polite delay is part of this call's budget: sleeping it must
+            # not push the remaining work past the deadline.
+            if deadline is not None and time.monotonic() + delay >= deadline:
+                pending.append({"title": entry.get("title") or "", "arxiv_id": arxiv_id,
+                                "reason": "call time budget is exhausted"})
+                break
+            time.sleep(delay)
         url = entry.get("pdf_url") or (ARXIV_PDF + urllib.parse.quote(arxiv_id))
         try:
             payload, content_type, _final = http_get(url, MAX_PDF_BYTES, "application/pdf", deadline)
@@ -520,8 +541,8 @@ def tool_search_literature(arguments):
     max_downloads = arguments.get("max_downloads", MAX_DOWNLOADS_PER_CALL)
     if isinstance(max_downloads, str) and max_downloads.strip().isdigit():
         max_downloads = int(max_downloads.strip())
-    if not isinstance(max_downloads, int) or isinstance(max_downloads, bool) or max_downloads < 0:
-        raise ToolError("max_downloads must be a non-negative integer")
+    if not isinstance(max_downloads, int) or isinstance(max_downloads, bool) or not 0 <= max_downloads <= 50:
+        raise ToolError("max_downloads must be an integer between 0 and 50")
 
     sources = []
     results = []
@@ -755,7 +776,10 @@ def guess_pdf_metadata(text, metadata):
             year = int(match.group(0))
     abstract = subject
     if not abstract:
-        match = re.search(r"(?is)\babstract\b[\s:.—-]*(.{200,4000}?)(?:\n\s*(?:1\.?\s+)?introduction\b|\bkeywords\b)", text)
+        # Scan only the head of the document: the abstract lives near the top,
+        # and an unbounded DOTALL search over a 200k-char text is slow.
+        head = text[:12000]
+        match = re.search(r"(?is)\babstract\b[\s:.—-]*(.{200,4000}?)(?:\n\s*(?:1\.?\s+)?introduction\b|\bkeywords\b)", head)
         if match:
             abstract = clean_text(match.group(1))
     return {
@@ -1133,6 +1157,55 @@ def _bib_entry_metadata(entry, source):
     return metadata
 
 
+def _scan_note_cards(notes_dir, project_path):
+    """Read every note card once: [(path, text)] for cards that exist."""
+    cards = []
+    if not notes_dir.is_dir():
+        return cards
+    for candidate in sorted(notes_dir.glob("*.md")):
+        try:
+            text = candidate.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        cards.append((candidate, text))
+    return cards
+
+
+def _existing_note_for_source(cards, notes_dir, project_path, source, entry_key=None, title=None):
+    """Same matching rules as existing_note_for_source, over a pre-scanned list."""
+    marker = "来源文件：`%s`" % os.path.relpath(str(source), str(project_path))
+    key = (entry_key or "").strip()
+    wanted = (title or "").strip()
+    key_marker = "来源条目：`%s`" % key if key else ""
+    matches = [(candidate, text) for candidate, text in cards if marker in text]
+    if key:
+        for candidate, text in matches:
+            if key_marker in text:
+                return candidate
+        if wanted:
+            for candidate, text in matches:
+                heading = text.lstrip().splitlines()[0] if text.strip() else ""
+                if heading.lstrip("# ").strip() == wanted:
+                    return candidate
+            named = notes_dir / (slugify(wanted) + ".md")
+            for candidate, _text in matches:
+                if candidate == named:
+                    return candidate
+        # The key is known and no card carries it: this entry is new.
+        return None
+    if wanted:
+        for candidate, text in matches:
+            heading = text.lstrip().splitlines()[0] if text.strip() else ""
+            if heading.lstrip("# ").strip() == wanted:
+                return candidate
+    for candidate, text in matches:
+        if "来源条目：" not in text:
+            return candidate
+    if len(matches) == 1:
+        return matches[0][0]
+    return None
+
+
 def tool_intake_papers(arguments):
     project_path = require_absolute_dir(arguments.get("path"))
     files = collect_files(project_path, arguments.get("files"))
@@ -1142,6 +1215,10 @@ def tool_intake_papers(arguments):
     failures = []
     notes = []
     deadline = time.monotonic() + MAX_CALL_SECONDS
+    notes_dir.mkdir(parents=True, exist_ok=True)
+    # Scan the note cards once per call instead of once per paper: a project
+    # with many notes would otherwise re-read every card for every source.
+    cards = _scan_note_cards(notes_dir, project_path)
     for source in files:
         try:
             if source.suffix.lower() == ".pdf":
@@ -1154,11 +1231,10 @@ def tool_intake_papers(arguments):
                 candidates = [_bib_entry_metadata(entry, source)
                               for entry in parse_bib(source)]
                 extraction_note = "BibTeX 字段解析"
-            notes_dir.mkdir(parents=True, exist_ok=True)
             for metadata in candidates:
                 try:
-                    existing = existing_note_for_source(
-                        notes_dir, project_path, source, metadata.get("key"),
+                    existing = _existing_note_for_source(
+                        cards, notes_dir, project_path, source, metadata.get("key"),
                         metadata.get("title"))
                     if existing is not None:
                         skipped.append({"source": str(source), "note": str(existing),
@@ -1181,6 +1257,10 @@ def tool_intake_papers(arguments):
                                                 metadata.get("key")))
                     notes.append(str(target))
                     processed.append(str(source))
+                    # Keep the per-call scan current so a later source in the
+                    # same call cannot collide with the card just written.
+                    cards.append((target, render_note(metadata, source, project_path,
+                                                      note_text, metadata.get("key"))))
                 except FileExistsError:
                     skipped.append({"source": str(source),
                                     "reason": "note already exists"})
@@ -1512,10 +1592,481 @@ def tool_init_project(arguments):
     }
 
 
+# --- note card evidence -----------------------------------------------------
+# A note card is a template, so an unfilled field holds scaffolding such as
+# "待智能体补全" or "无".  That scaffolding records the absence of evidence and
+# must never travel downstream as a value: a DOI of "无" would become an
+# evidence link and a limitation of "无" would become a research gap.
+NOTE_PLACEHOLDERS = {
+    "无", "无链接", "暂无", "未知", "未记录", "待智能体补全", "待智能体填写",
+    "none", "null", "n/a", "na", "tbd", "-", "—", "/", "?", "？",
+}
+
+
+def _note_value(value):
+    """A note field's value, or "" when the field carries no evidence."""
+    text = (value or "").strip().strip("`*_ \t")
+    if not text:
+        return ""
+    if text.casefold() in NOTE_PLACEHOLDERS:
+        return ""
+    return text
+
+
+def _is_note_placeholder(value):
+    """True when a note field holds only scaffolding, never content."""
+    text = (value or "").strip()
+    if not text:
+        return True
+    lines = [re.sub(r"^[-*+]\s*", "", line).strip() for line in text.splitlines()]
+    lines = [line for line in lines if line]
+    if not lines:
+        return True
+    return all(not _note_value(line) for line in lines)
+
+
+def _note_excerpt(text, limit=200):
+    """First substantive line of a note field, short enough for a report."""
+    for line in (text or "").splitlines():
+        line = re.sub(r"^[-*+]\s*", "", line).strip()
+        if line and _note_value(line):
+            return line if len(line) <= limit else line[:limit].rstrip() + "…"
+    return ""
+
+
+def _parse_note_cards(notes_dir):
+    """Parse all note cards in the notes directory.
+    
+    Expected note card format (Chinese):
+    - First line: '# 标题' (title heading)
+    - Metadata lines: '- 作者：...', '- 年份：...', '- DOI：...', '- 来源文件：...', 
+                       '- 来源条目：...', '- 证据链接：...'
+    - Sections: '## 摘要', '## 研究问题', '## 方法', '## 结论', '## 局限'
+    - Section content: any lines after section heading until next heading
+    - Comments: lines starting with '<!--' are ignored
+    - Year format: 4-digit integer (e.g., '2023' or '2023年')
+    
+    Returns a list of dicts with extracted metadata and content.
+    Each dict contains: path, title, authors, year, doi, url, abstract,
+    research_question, method, conclusions, limitations, raw_text
+    """
+    cards = []
+    if not notes_dir.is_dir():
+        return cards
+    
+    for card_path in sorted(notes_dir.glob("*.md")):
+        try:
+            text = card_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        
+        card_data = {
+            "path": str(card_path),
+            "title": "",
+            "authors": [],
+            "year": None,
+            "doi": "",
+            "url": "",
+            "abstract": "",
+            "research_question": "",
+            "method": "",
+            "conclusions": "",
+            "limitations": "",
+            "raw_text": text,
+        }
+        
+        # Extract title (first heading)
+        heading_match = re.match(r"^#\s+(.+?)\s*$", text, re.MULTILINE)
+        if heading_match:
+            card_data["title"] = heading_match.group(1).strip()
+        
+        # Extract metadata from card
+        for line in text.splitlines():
+            line = line.strip()
+            if line.startswith("- 作者："):
+                # Find the position after the full-width colon
+                colon_pos = line.find("：")
+                if colon_pos >= 0:
+                    authors_str = line[colon_pos + 1:].strip()
+                    if authors_str and authors_str != "待智能体补全":
+                        # Names may be separated by ASCII or full-width commas.
+                        names = re.split(r"[,，;；]", authors_str)
+                        card_data["authors"] = [name.strip() for name in names
+                                                if _note_value(name)]
+            elif line.startswith("- 年份："):
+                colon_pos = line.find("：")
+                if colon_pos >= 0:
+                    year_str = line[colon_pos + 1:].strip()
+                    if year_str and year_str != "待智能体补全":
+                        # Extract 4-digit year from string (handles "2023" or "2023年")
+                        year_match = re.search(r"(\d{4})", year_str)
+                        if year_match:
+                            try:
+                                year_value = int(year_match.group(1))
+                                # Validate year is in reasonable range (1000-2100)
+                                if 1000 <= year_value <= 2100:
+                                    card_data["year"] = year_value
+                                else:
+                                    log_error("Year %d in %s is outside valid range (1000-2100)" % (year_value, card_path))
+                            except (ValueError, OverflowError) as e:
+                                # Log warning for invalid year values and keep year as None
+                                log_error("Invalid year value '%s' in %s: %s" % (year_str, card_path, e))
+            elif line.startswith("- DOI："):
+                colon_pos = line.find("：")
+                if colon_pos >= 0:
+                    card_data["doi"] = _note_value(line[colon_pos + 1:])
+            elif line.startswith("- 来源文件："):
+                pass  # Skip source file marker
+            elif line.startswith("- 来源条目："):
+                pass  # Skip entry marker
+            elif line.startswith("- 证据链接："):
+                colon_pos = line.find("：")
+                if colon_pos >= 0:
+                    card_data["url"] = _note_value(line[colon_pos + 1:])
+        
+        # Extract sections if filled
+        sections = {
+            "研究问题": "research_question",
+            "方法": "method",
+            "结论": "conclusions",
+            "局限": "limitations",
+        }
+        
+        current_section = None
+        in_comment = False
+        for line in text.splitlines():
+            stripped = line.strip()
+            if in_comment:
+                # A multi-line template comment spans lines and carries no
+                # content of its own.
+                if "-->" in stripped:
+                    in_comment = False
+                continue
+            if stripped.startswith("<!--"):
+                in_comment = "-->" not in stripped
+                continue
+            if stripped.startswith("## "):
+                section_name = stripped[3:].strip()
+                current_section = sections.get(section_name)
+                continue
+            if stripped.startswith("#"):
+                # A deeper heading (###) labels a block inside the section; the
+                # heading text is scaffolding, but the block's body is content.
+                continue
+            if current_section and stripped:
+                if card_data[current_section]:
+                    card_data[current_section] += "\n" + stripped
+                else:
+                    card_data[current_section] = stripped
+        
+        # Extract abstract from the abstract section
+        abstract_match = re.search(r"## 摘要\s*\n(.*?)(?=\n## |\Z)", text, re.DOTALL)
+        if abstract_match:
+            abstract = clean_text(abstract_match.group(1))
+            card_data["abstract"] = "" if _is_note_placeholder(abstract) else abstract
+        
+        cards.append(card_data)
+    
+    return cards
+
+
+def _extract_themes(cards):
+    """Extract themes from paper abstracts and research questions.
+    
+    Returns a dict mapping theme keywords to lists of paper indices.
+    """
+    theme_keywords = {}
+    
+    # Common research themes to look for
+    themes = [
+        "方法", "方法学", "框架", "模型", "算法", "技术",
+        "评估", "分析", "实验", "验证", "比较",
+        "机器学习", "深度学习", "自然语言处理", "计算机视觉",
+        "数据", "特征", "表示", "嵌入",
+        "性能", "准确率", "召回", "F1", "BLEU", "ROUGE",
+        "用户", "体验", "可用性", "界面",
+        "系统", "架构", "设计", "实现",
+        "问题", "挑战", "应用", "场景",
+        "质量", "可靠性", "可维护性", "可扩展性",
+    ]
+    
+    for idx, card in enumerate(cards):
+        text_to_analyze = (card.get("abstract") or "") + " " + (card.get("research_question") or "")
+        text_lower = text_to_analyze.lower()
+        
+        for theme in themes:
+            if theme in text_lower:
+                if theme not in theme_keywords:
+                    theme_keywords[theme] = []
+                theme_keywords[theme].append(idx)
+    
+    return theme_keywords
+
+
+def _find_contradictions(cards):
+    """Find contradictions between papers based on their conclusions.
+    
+    Returns a list of contradiction descriptions.
+    """
+    contradictions = []
+    
+    # Extract conclusions
+    conclusions = []
+    for idx, card in enumerate(cards):
+        if card.get("conclusions"):
+            conclusions.append({
+                "index": idx,
+                "title": card.get("title", ""),
+                "conclusion": card.get("conclusions"),
+            })
+    
+    # Simple contradiction detection: look for conflicting claims
+    # This is a heuristic - in practice, more sophisticated NLP would be needed
+    conflict_indicators = [
+        ("支持", "不支持"),
+        ("有效", "无效"),
+        ("显著", "不显著"),
+        ("提高", "降低"),
+        ("增加", "减少"),
+        ("高", "低"),
+        ("好", "差"),
+    ]
+    
+    for i, c1 in enumerate(conclusions):
+        for j, c2 in enumerate(conclusions):
+            if i >= j:
+                continue
+            for positive, negative in conflict_indicators:
+                if positive in c1["conclusion"] and negative in c2["conclusion"]:
+                    contradictions.append({
+                        "papers": [c1["title"], c2["title"]],
+                        "indicators": [positive, negative],
+                        "description": f"'{c1['title']}' 与 '{c2['title']}' 在 {positive}/{negative} 上的结论存在矛盾",
+                    })
+                elif negative in c1["conclusion"] and positive in c2["conclusion"]:
+                    contradictions.append({
+                        "papers": [c1["title"], c2["title"]],
+                        "indicators": [negative, positive],
+                        "description": f"'{c1['title']}' 与 '{c2['title']}' 在 {negative}/{positive} 上的结论存在矛盾",
+                    })
+    
+    return contradictions
+
+
+def _find_gaps(cards):
+    """Identify research gaps based on paper limitations and unanswered questions.
+    
+    Returns a list of gap descriptions with evidence links.
+    """
+    gaps = []
+    
+    # Extract limitations
+    limitations = []
+    for idx, card in enumerate(cards):
+        if card.get("limitations"):
+            limitations.append({
+                "index": idx,
+                "title": card.get("title", ""),
+                "limitation": card.get("limitations"),
+                "url": card.get("url"),
+                "doi": card.get("doi"),
+            })
+    
+    # Extract research questions to find unanswered areas
+    research_questions = []
+    for idx, card in enumerate(cards):
+        if card.get("research_question"):
+            research_questions.append({
+                "index": idx,
+                "title": card.get("title", ""),
+                "question": card.get("research_question"),
+                "url": card.get("url"),
+                "doi": card.get("doi"),
+            })
+    
+    # Common gap patterns
+    gap_patterns = [
+        ("缺乏", "方法论"),
+        ("未涉及", "场景"),
+        ("尚未", "解决"),
+        ("不足", "数据"),
+        ("有限", "样本"),
+        ("未有", "研究"),
+        ("没有", "方法"),
+        ("未探索", "问题"),
+    ]
+    
+    # Check for gaps in limitations
+    for pattern, category in gap_patterns:
+        for lim in limitations:
+            if pattern in lim.get("limitation", ""):
+                gaps.append({
+                    "description": f"在 '{lim['title']}' 中发现：{lim['limitation']}（属于 {category} 类）",
+                    "evidence_link": lim.get("url") or lim.get("doi") or "无链接",
+                    "evidence_title": lim["title"],
+                    "category": category,
+                })
+    
+    # Check for unanswered questions
+    for q in research_questions:
+        if q.get("question"):
+            # Look for questions that indicate a gap
+            question_lower = q["question"].lower()
+            if any(word in question_lower for word in ["需要", "应该", "如何", "怎样", "是否存在", "是否"]):
+                gaps.append({
+                    "description": f"研究问题：{q['question']}",
+                    "evidence_link": q.get("url") or q.get("doi") or "无链接",
+                    "evidence_title": q["title"],
+                    "category": "research_question",
+                })
+    
+    return gaps
+
+
+def tool_analyze_gaps(arguments):
+    """Analyze literature notes to detect gaps and cluster by theme.
+    
+    Reads notes/ to produce gaps.md with:
+    - Theme clusters (papers grouped by research themes)
+    - Contradictions between papers
+    - Research gaps with evidence links
+    
+    Expected note card format (Chinese):
+    - First line: '# 标题' (title heading)
+    - Metadata lines: '- 作者：...', '- 年份：...', '- DOI：...', '- 来源文件：...', 
+                       '- 来源条目：...', '- 证据链接：...'
+    - Sections: '## 摘要', '## 研究问题', '## 方法', '## 结论', '## 局限'
+    - Section content: any lines after section heading until next heading
+    - Comments: lines starting with '<!--' are ignored
+    - Year format: 4-digit integer (e.g., '2023' or '2023年')
+    
+    Returns a dict with: path, gaps_file, cards_analyzed, themes_found,
+    contradictions_found, gaps_found, has_gaps, themes
+    """
+    project_path = require_absolute_dir(arguments.get("path"))
+    notes_dir = project_path / "notes"
+    gaps_file = project_path / "gaps.md"
+    
+    # Parse all note cards
+    cards = _parse_note_cards(notes_dir)
+    
+    if not cards:
+        raise ToolError("没有找到笔记卡，请先运行 intake_papers")
+    
+    # Extract themes
+    themes = _extract_themes(cards)
+    
+    # Find contradictions
+    contradictions = _find_contradictions(cards)
+    
+    # Find gaps
+    gaps = _find_gaps(cards)
+    
+    # Generate gaps.md content
+    timestamp = utc_now()
+    
+    content_lines = [
+        "# 研究缺口分析 (Gap Analysis)",
+        "",
+        f"> 由 Trinno `analyze_gaps` 工具自动生成，基于 {len(cards)} 篇已整理的笔记卡。",
+        f"> 生成时间：{timestamp}",
+        "",
+        "## 1. 主题聚类",
+        "",
+        "### 1.1 按研究主题分类的文献",
+        "",
+    ]
+    
+    if themes:
+        for theme, indices in sorted(themes.items(), key=lambda x: len(x[1]), reverse=True):
+            content_lines.append(f"### 主题：{theme}（{len(indices)} 篇）")
+            content_lines.append("")
+            for idx in indices:
+                card = cards[idx]
+                title = card.get("title", "无标题")
+                url = card.get("url") or card.get("doi") or "无链接"
+                content_lines.append(f"- [{title}]({url})")
+            content_lines.append("")
+    else:
+        content_lines.append("> 暂无明确主题聚类结果。")
+        content_lines.append("")
+    
+    content_lines.extend([
+        "## 2. 文献矛盾",
+        "",
+    ])
+    
+    if contradictions:
+        for i, c in enumerate(contradictions, 1):
+            content_lines.append(f"### 矛盾 {i}：{c['description']}")
+            content_lines.append("")
+            content_lines.append(f"- 涉及论文：{', '.join(c['papers'])}")
+            content_lines.append(f"- 证据指标：{', '.join(c['indicators'])}")
+            content_lines.append("")
+    else:
+        content_lines.append("> 暂未发现显著的文献矛盾。")
+        content_lines.append("")
+    
+    content_lines.extend([
+        "## 3. 研究缺口",
+        "",
+    ])
+    
+    if gaps:
+        for i, gap in enumerate(gaps, 1):
+            content_lines.append(f"### 缺口 {i}：{gap['description']}")
+            content_lines.append("")
+            content_lines.append(f"- 证据来源：{gap['evidence_title']}")
+            content_lines.append(f"- 证据链接：{gap['evidence_link']}")
+            content_lines.append(f"- 类别：{gap['category']}")
+            content_lines.append("")
+    else:
+        content_lines.append("> 暂未发现显著的研究缺口。")
+        content_lines.append("")
+    
+    content_lines.extend([
+        "## 4. 证据强度建议",
+        "",
+        "> 下面的每条缺口，建议由智能体根据 `quality-appraisal.md` 中的评估结果标注证据强度：",
+        "",
+        "| 缺口编号 | 证据强度 (强/中/弱/仅个案) | 依据 |",
+        "|----------|------------------------|------|",
+    ])
+    
+    for i in range(len(gaps)):
+        content_lines.append(f"| {i+1} | <!-- 待智能体填写 --> | <!-- 待智能体填写 --> |")
+    
+    content_lines.extend([
+        "",
+        "---",
+        "",
+        "*注：以上分析由工具自动生成。请根据 `notes/` 中各卡的结论和 `quality-appraisal.md` 中的评估，",
+        "完善证据强度标注和缺口描述。*"
+    ])
+    
+    # Write gaps.md (only if it doesn't exist)
+    if gaps_file.exists():
+        raise ToolError("gaps.md 已存在，请先删除或重命名后重试")
+    
+    gaps_file.write_text("\n".join(content_lines), encoding="utf-8")
+    
+    return {
+        "path": str(project_path),
+        "gaps_file": str(gaps_file),
+        "cards_analyzed": len(cards),
+        "themes_found": len(themes),
+        "contradictions_found": len(contradictions),
+        "gaps_found": len(gaps),
+        "has_gaps": len(gaps) > 0,
+        "themes": {k: len(v) for k, v in themes.items()},
+    }
+
+
 TOOL_HANDLERS = {
     "search_literature": tool_search_literature,
     "intake_papers": tool_intake_papers,
     "init_project": tool_init_project,
+    "analyze_gaps": tool_analyze_gaps,
 }
 
 TOOL_DESCRIPTORS = {
@@ -1575,6 +2126,22 @@ TOOL_DESCRIPTORS = {
             "additionalProperties": False,
         },
     },
+    "analyze_gaps": {
+        "name": "analyze_gaps",
+        "description": "Analyze literature notes to detect gaps and cluster by theme. "
+                       "Reads notes/ to produce gaps.md with: "
+                       "theme clusters (papers grouped by research themes), "
+                       "contradictions between papers, and research gaps with evidence links.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string",
+                       "description": "Absolute path to the research project folder."},
+            },
+            "required": ["path"],
+            "additionalProperties": False,
+        },
+    },
 }
 
 
@@ -1583,9 +2150,22 @@ def tool_list():
     return {"tools": [TOOL_DESCRIPTORS[name] for name in TOOLS if name in TOOL_DESCRIPTORS]}
 
 
+# A single request line is bounded so a runaway host cannot make the runtime
+# buffer an unbounded message on stdin.
+MAX_REQUEST_LINE_BYTES = 1024 * 1024
+
+
 def handle(request):
     method = request.get("method")
-    params = request.get("params") or {}
+    if not isinstance(method, str):
+        log_error("request without a string method")
+        return {"error": {"code": -32600, "message": "request method must be a string"}}, True
+    params = request.get("params")
+    if params is None:
+        params = {}
+    if not isinstance(params, dict):
+        log_error("request %r with non-object params" % method)
+        return {"error": {"code": -32602, "message": "params must be an object"}}, True
     if method == "initialize":
         return {"result": {"protocolVersion": "1.0",
                            "token": params.get("token", ""),
@@ -1599,8 +2179,13 @@ def handle(request):
         handler = TOOL_HANDLERS.get(name)
         if handler is None:
             return {"error": {"code": -32601, "message": "unknown tool %r" % name}}, True
+        arguments = params.get("arguments")
+        if arguments is None:
+            arguments = {}
+        if not isinstance(arguments, dict):
+            return {"error": {"code": -32602, "message": "arguments must be an object"}}, True
         try:
-            return {"result": handler(params.get("arguments") or {})}, True
+            return {"result": handler(arguments)}, True
         except ToolError as error:
             log_error("tool %s refused: %s" % (name, error))
             return {"error": {"code": -32000, "message": str(error)}}, True
@@ -1617,6 +2202,9 @@ def main():
         line = line.strip()
         if not line:
             continue
+        if len(line.encode("utf-8", "replace")) > MAX_REQUEST_LINE_BYTES:
+            log_error("ignoring oversized request line (%d bytes)" % len(line))
+            continue
         try:
             request = json.loads(line)
         except ValueError as error:
@@ -1626,7 +2214,15 @@ def main():
         if not isinstance(request, dict):
             log_error("ignoring non-object JSON line")
             continue
-        outcome, keep_going = handle(request)
+        try:
+            outcome, keep_going = handle(request)
+        except Exception as error:
+            # handle() is expected to catch tool bugs itself; this guard keeps
+            # one unexpected failure from killing the whole process.
+            log_error("request handling crashed: %s: %s" % (type(error).__name__, error))
+            outcome, keep_going = {"error": {"code": -32603,
+                                             "message": "internal error: %s: %s"
+                                                        % (type(error).__name__, error)}}, True
         if outcome is not None:
             envelope = {"jsonrpc": "2.0", "id": request.get("id")}
             envelope.update(outcome)

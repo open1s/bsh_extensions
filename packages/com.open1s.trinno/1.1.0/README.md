@@ -22,7 +22,8 @@ Implemented against `requirement.md` (including its §12 v1.1 amendment): three 
 
 ## Install
 
-    bsh ext market install com.open1s.trinno
+    bsh ext install /Users/gaosg/Projects/hello/trinno
+    bsh ext list
     bsh ext info com.open1s.trinno
 
 ## Capability grants
@@ -33,7 +34,7 @@ The package requests `process.execute`, `network.http`, `workspace.write`, `work
     bsh ext grant com.open1s.trinno network.http --scope domain:api.openalex.org
     bsh ext grant com.open1s.trinno network.http --scope domain:export.arxiv.org
     bsh ext grant com.open1s.trinno network.http --scope domain:arxiv.org
-    bsh ext grant com.open1s.trinno workspace.write --scope path:<absolute-workspace-path>
+    bsh ext grant com.open1s.trinno workspace.write --scope path:/Users/gaosg/Projects/hello
 
 `workspace.read`, `agent.tools.register` and `agent.skills.provide` are low/medium-risk automatic capabilities.
 
