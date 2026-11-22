@@ -39,7 +39,7 @@
       "version": "1.1.0",
       "description": "AI-assisted literature research workflow for graduate students and early-career researchers: search OpenAlex and arXiv, ingest papers into note cards, and scaffold methodology and TRIZ/ARIZ innovation workspaces, guided by bundled research skills.",
       "path": "packages/com.open1s.trinno/1.1.0",
-      "hash": "6196fe96575d3915b58bdbe26b1f164d76193410f35718e37a03de8d0100a2ab"
+      "hash": "32dd34a50d97401528101a300d72319e9d8279b35096d874aabc2f90a999a192"
     },
     {
       "id": "com.open1s.vcs",
